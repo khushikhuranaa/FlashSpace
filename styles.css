@@ -1,0 +1,41 @@
+/* FlashSpace Custom Styles (inlined from css/styles.css for single-file preview) */
+
+@layer base {
+  html, body { margin: 0; padding: 0; }
+  body { overscroll-behavior: none; }
+  main > :first-child { margin-top: 0 !important; }
+  main > :last-child { margin-bottom: 0 !important; }
+}
+
+::-webkit-scrollbar { display: none; }
+
+.fade-in { animation: fadeIn 0.3s ease-out; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+.progress-bar { transition: width 1s ease-out; }
+
+.card-hover { transition: all 0.2s; }
+.card-hover:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0,0,0,0.08); }
+
+.zip-icon { background: linear-gradient(135deg, #6366f1, #8b5cf6); }
+
+.sidebar-link { transition: all 0.15s ease; }
+.sidebar-link:active { transform: scale(0.98); }
+
+.filter-tab { transition: all 0.15s ease; }
+
+.toast-enter { animation: toastIn 0.3s ease-out; }
+.toast-exit { animation: toastOut 0.3s ease-out forwards; }
+@keyframes toastIn { from { opacity: 0; transform: translateY(12px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes toastOut { from { opacity: 1; transform: translateY(0) scale(1); } to { opacity: 0; transform: translateY(12px) scale(0.95); } }
+
+@keyframes countdownPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+.countdown-urgent { animation: countdownPulse 1s ease-in-out infinite; }
+
+.upload-zone { transition: all 0.2s ease; }
+.upload-zone:hover { border-color: #4f46e5; background: #f5f3ff; }
+.upload-zone.dragover { border-color: #4f46e5; background: #ede9fe; transform: scale(1.01); }
+  

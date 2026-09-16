@@ -1,0 +1,2387 @@
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FlashSpace — Ephemeral Cloud Workspaces</title>
+  <link href="https://fonts.googleapis.com" rel="preconnect"/>
+  <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@600;700&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+  <style>
+/* FlashSpace Custom Styles (inlined from css/styles.css for single-file preview) */
+
+@layer base {
+  html, body { margin: 0; padding: 0; }
+  body { overscroll-behavior: none; }
+  main > :first-child { margin-top: 0 !important; }
+  main > :last-child { margin-bottom: 0 !important; }
+}
+
+::-webkit-scrollbar { display: none; }
+
+.fade-in { animation: fadeIn 0.3s ease-out; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+.progress-bar { transition: width 1s ease-out; }
+
+.card-hover { transition: all 0.2s; }
+.card-hover:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0,0,0,0.08); }
+
+.zip-icon { background: linear-gradient(135deg, #6366f1, #8b5cf6); }
+
+.sidebar-link { transition: all 0.15s ease; }
+.sidebar-link:active { transform: scale(0.98); }
+
+.filter-tab { transition: all 0.15s ease; }
+
+.toast-enter { animation: toastIn 0.3s ease-out; }
+.toast-exit { animation: toastOut 0.3s ease-out forwards; }
+@keyframes toastIn { from { opacity: 0; transform: translateY(12px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes toastOut { from { opacity: 1; transform: translateY(0) scale(1); } to { opacity: 0; transform: translateY(12px) scale(0.95); } }
+
+@keyframes countdownPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+.countdown-urgent { animation: countdownPulse 1s ease-in-out infinite; }
+
+.upload-zone { transition: all 0.2s ease; }
+.upload-zone:hover { border-color: #4f46e5; background: #f5f3ff; }
+.upload-zone.dragover { border-color: #4f46e5; background: #ede9fe; transform: scale(1.01); }
+  </style>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: { DEFAULT: "#4f46e5", 50: "#eef2ff", 100: "#e0e7ff", 600: "#4f46e5", 700: "#4338ca" },
+            surface: "#f8fafc",
+            card: "#ffffff",
+            primary: "#0f172a",
+            muted: "#64748b",
+            border: "#e2e8f0"
+          },
+          fontFamily: {
+            sans: ["Inter", "sans-serif"],
+            display: ["Plus Jakarta Sans", "sans-serif"],
+            mono: ["JetBrains Mono", "monospace"]
+          }
+        }
+      }
+    };
+  </script>
+
+</head>
+<body class="bg-surface font-sans text-primary antialiased">
+
+  <!-- Sidebar (hidden by default, shown when logged in) -->
+  <aside id="sidebar" class="fixed left-0 top-0 h-screen w-[240px] bg-card border-r border-border z-50 flex flex-col justify-between select-none hidden">
+    <div class="flex flex-col min-h-0 flex-1">
+      <div class="h-14 px-5 flex items-center justify-between border-b border-border/80 flex-shrink-0">
+        <div class="flex items-center gap-2.5 cursor-pointer" onclick="navigateTo('dashboard')">
+          <div class="w-7 h-7 rounded-lg bg-brand flex items-center justify-center text-white font-bold text-xs">F</div>
+          <span class="font-display text-[15px] font-bold text-primary tracking-tight">FlashSpace</span>
+        </div>
+        <span class="font-mono text-[11px] px-1.5 py-0.5 rounded bg-slate-100 text-muted font-medium">v2.4</span>
+      </div>
+      <div class="overflow-y-auto flex-1 px-3 py-4 space-y-6">
+        <nav class="space-y-0.5" id="main-nav">
+          <a onclick="navigateTo('dashboard')" class="sidebar-link relative flex items-center justify-between px-3 py-2 rounded-lg text-muted hover:text-primary hover:bg-slate-50 transition-colors text-[13px] font-medium cursor-pointer" data-view="dashboard">
+            <div class="flex items-center gap-2.5">
+              <span class="sidebar-indicator w-1 h-3.5 bg-brand rounded-full absolute left-1 hidden"></span>
+              <span class="material-symbols-outlined text-[18px]">grid_view</span>
+              <span>Dashboard</span>
+            </div>
+          </a>
+          <a onclick="navigateTo('my-spaces')" class="sidebar-link flex items-center justify-between px-3 py-2 rounded-lg text-muted hover:text-primary hover:bg-slate-50 transition-colors text-[13px] font-medium cursor-pointer" data-view="my-spaces">
+            <div class="flex items-center gap-2.5">
+              <span class="sidebar-indicator w-1 h-3.5 bg-brand rounded-full absolute left-1 hidden"></span>
+              <span class="material-symbols-outlined text-[18px]">layers</span>
+              <span>My Spaces</span>
+            </div>
+          </a>
+          <a onclick="navigateTo('vault')" class="sidebar-link flex items-center justify-between px-3 py-2 rounded-lg text-muted hover:text-primary hover:bg-slate-50 transition-colors text-[13px] font-medium cursor-pointer" data-view="vault">
+            <div class="flex items-center gap-2.5">
+              <span class="sidebar-indicator w-1 h-3.5 bg-brand rounded-full absolute left-1 hidden"></span>
+              <span class="material-symbols-outlined text-[18px]">inventory_2</span>
+              <span>Vault (Archives)</span>
+            </div>
+          </a>
+          <a onclick="navigateTo('notifications')" class="sidebar-link flex items-center justify-between px-3 py-2 rounded-lg text-muted hover:text-primary hover:bg-slate-50 transition-colors text-[13px] font-medium cursor-pointer" data-view="notifications">
+            <div class="flex items-center gap-2.5">
+              <span class="sidebar-indicator w-1 h-3.5 bg-brand rounded-full absolute left-1 hidden"></span>
+              <span class="material-symbols-outlined text-[18px]">notifications</span>
+              <span>Notifications</span>
+            </div>
+          </a>
+        </nav>
+        <!-- Current Space -->
+        <div id="sidebar-space-section" class="hidden">
+          <div class="px-3 pb-2 flex items-center justify-between">
+            <span class="text-[10px] uppercase font-semibold tracking-wider text-muted/80">Current Space</span>
+            <span id="sidebar-space-label" class="font-mono text-[11px] text-slate-500 truncate max-w-[85px]"></span>
+          </div>
+          <nav class="space-y-0.5" id="space-nav">
+            <a onclick="switchSpaceTab('overview')" class="space-nav-link flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-muted hover:text-primary hover:bg-slate-50 transition-colors text-[13px] cursor-pointer" data-stab="overview">
+              <span class="material-symbols-outlined text-[18px]">explore</span>
+              <span>Space Overview</span>
+            </a>
+            <a onclick="switchSpaceTab('files')" class="space-nav-link flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-muted hover:text-primary hover:bg-slate-50 transition-colors text-[13px] cursor-pointer" data-stab="files">
+              <span class="material-symbols-outlined text-[18px]">description</span>
+              <span>Files</span>
+            </a>
+            <a onclick="switchSpaceTab('members')" class="space-nav-link flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-muted hover:text-primary hover:bg-slate-50 transition-colors text-[13px] cursor-pointer" data-stab="members">
+              <span class="material-symbols-outlined text-[18px]">group</span>
+              <span>Members</span>
+            </a>
+            <a onclick="switchSpaceTab('activity')" class="space-nav-link flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-muted hover:text-primary hover:bg-slate-50 transition-colors text-[13px] cursor-pointer" data-stab="activity">
+              <span class="material-symbols-outlined text-[18px]">pulse_alert</span>
+              <span>Activity</span>
+            </a>
+            <a onclick="switchSpaceTab('settings')" class="space-nav-link flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-muted hover:text-primary hover:bg-slate-50 transition-colors text-[13px] cursor-pointer" data-stab="settings">
+              <span class="material-symbols-outlined text-[18px]">tune</span>
+              <span>Settings</span>
+            </a>
+          </nav>
+        </div>
+      </div>
+    </div>
+    <div class="flex-shrink-0 border-t border-border px-3 py-3 space-y-2 bg-card">
+      <a onclick="navigateTo('admin')" class="sidebar-link flex items-center justify-between px-3 py-1.5 rounded-lg text-muted hover:text-primary hover:bg-slate-50 transition-colors text-[13px] cursor-pointer" data-view="admin">
+        <div class="flex items-center gap-2.5">
+          <span class="material-symbols-outlined text-[18px]">verified_user</span>
+          <span>Admin Portal</span>
+        </div>
+        <span class="text-[11px] px-1.5 py-0.5 rounded-lg bg-slate-100 text-muted font-medium">Admin</span>
+      </a>
+      <a class="flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-muted hover:text-primary hover:bg-slate-50 transition-colors text-[13px] cursor-pointer">
+        <span class="material-symbols-outlined text-[18px]">help</span>
+        <span>Docs & Help</span>
+      </a>
+      <div class="pt-2 border-t border-border">
+        <div onclick="navigateTo('profile')" class="flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer">
+          <div id="sidebar-avatar" class="w-8 h-8 rounded-full bg-brand text-white flex items-center justify-center text-[11px] font-bold"></div>
+          <div class="flex flex-col min-w-0 flex-1">
+            <span id="sidebar-username" class="text-[13px] font-semibold text-primary truncate leading-tight"></span>
+            <span id="sidebar-userrole" class="text-[11px] text-muted truncate leading-tight"></span>
+          </div>
+          <span class="material-symbols-outlined text-[16px] text-muted">unfold_more</span>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Top Bar -->
+  <header id="topbar" class="fixed top-0 left-0 right-0 h-14 bg-card/90 backdrop-blur-xl border-b border-border z-40 flex items-center justify-between px-8 hidden">
+    <div class="flex items-center gap-3 w-full max-w-xl">
+      <button id="back-btn" onclick="goBack()" title="Back" class="hidden flex-shrink-0 w-9 h-9 rounded-lg text-muted hover:text-primary hover:bg-slate-100 transition-colors items-center justify-center">
+        <span class="material-symbols-outlined text-[20px]">arrow_back</span>
+      </button>
+      <div class="relative w-full">
+        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[18px] text-muted">search</span>
+        <input id="search-input" class="w-full h-9 pl-9 pr-3 rounded-lg bg-slate-50 border border-border text-[13px] text-primary placeholder:text-muted focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand transition-all" placeholder="Search spaces, files, archives... ⌘K" type="text" oninput="handleSearch(this.value)">
+      </div>
+    </div>
+    <div class="flex items-center gap-4">
+      <button onclick="navigateTo('notifications')" title="Notifications" class="relative p-2 rounded-lg text-muted hover:text-primary hover:bg-slate-100 transition-colors">
+        <span class="material-symbols-outlined text-[20px]">notifications</span>
+        <span id="notif-badge" class="hidden absolute top-0.5 right-0.5 min-w-[15px] h-[15px] px-1 rounded-full bg-red-500 text-white text-[9px] font-bold items-center justify-center leading-none">0</span>
+      </button>
+      <div class="h-5 w-px bg-border"></div>
+      <div onclick="navigateTo('profile')" class="flex items-center gap-2 pl-1 cursor-pointer">
+        <div id="topbar-avatar" class="w-7 h-7 rounded-full bg-brand text-white flex items-center justify-center text-[11px] font-bold"></div>
+        <div class="flex flex-col">
+          <span id="topbar-name" class="text-[13px] font-medium text-primary leading-tight"></span>
+          <span id="topbar-role" class="text-[11px] text-muted leading-tight"></span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Auth Nav (shown when not logged in) -->
+  <nav id="auth-nav" class="relative z-10 w-full px-8 py-5 border-b border-slate-200/70 bg-white/75 backdrop-blur-md sticky top-0">
+    <div class="max-w-7xl mx-auto flex items-center justify-between">
+      <a href="#" onclick="navigateTo('landing')" class="flex items-center gap-3 group">
+        <div class="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center shadow-sm group-hover:bg-indigo-700 transition-colors">
+          <span class="text-white font-bold text-sm">F</span>
+        </div>
+        <span class="text-xl font-bold tracking-tight text-slate-900">FlashSpace</span>
+      </a>
+      <nav class="hidden md:flex items-center gap-8 text-sm font-medium text-slate-600">
+        <a href="#" class="hover:text-slate-900 transition-colors">Overview</a>
+        <a href="#" class="hover:text-slate-900 transition-colors">Spaces</a>
+        <a href="#" class="hover:text-slate-900 transition-colors">Vault</a>
+        <a href="#" class="hover:text-slate-900 transition-colors">Docs</a>
+      </nav>
+      <div class="flex items-center gap-2">
+        <button id="auth-back-btn" onclick="goBack()" class="hidden items-center gap-1 text-sm font-medium text-slate-600 hover:text-slate-900 px-2 py-2 transition-colors">
+          <span class="material-symbols-outlined text-[18px]">arrow_back</span><span>Back</span>
+        </button>
+        <button onclick="navigateTo('login')" class="text-sm font-medium text-slate-600 hover:text-slate-900 px-3 py-2 transition-colors">Sign In</button>
+        <button onclick="launchSpace()" class="inline-flex items-center justify-center text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 px-4 py-2 rounded-lg shadow-sm hover:shadow transition-all">Launch FlashSpace</button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content Wrapper -->
+  <div id="main-wrapper" class="hidden">
+    <div class="pl-[240px]">
+      <main class="w-full pt-14 min-h-screen px-8 py-6">
+        <div class="max-w-7xl mx-auto space-y-6">
+
+          <!-- ============ LANDING ============ -->
+          <div id="view-landing" class="fade-in">
+            <div class="fixed inset-0 pointer-events-none overflow-hidden z-0" aria-hidden="true">
+              <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[720px] h-[520px] bg-gradient-to-tr from-indigo-100/60 via-purple-100/30 to-blue-50/50 rounded-full blur-3xl opacity-70"></div>
+              <div class="absolute inset-0 bg-[linear-gradient(to_right,#6366f108_1px,transparent_1px),linear-gradient(to_bottom,#6366f108_1px,transparent_1px)] bg-[size:48px_48px]"></div>
+            </div>
+            <main class="relative z-10 flex-1 flex flex-col items-center justify-center px-6 text-center max-w-4xl mx-auto my-auto" style="min-height: calc(100vh - 200px);">
+              <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50/80 border border-indigo-200/70 text-indigo-700 text-xs font-medium mb-6">Autonomous Cloud Workspaces</div>
+              <h1 class="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight text-slate-900 leading-[1.12] mb-5">Temporary cloud storage that cleans up after itself.</h1>
+              <p class="text-base sm:text-lg text-slate-600 max-w-2xl mx-auto leading-relaxed mb-8">Collaborate on hackathons and sprints with automatic TTL countdowns, auto-archived ZIP snapshots, and zero orphaned storage.</p>
+              <div class="flex items-center justify-center gap-3.5 mb-10">
+                <button onclick="launchSpace()" class="inline-flex items-center gap-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 px-5 py-2.5 rounded-lg shadow-sm hover:shadow transition-all">
+                  Launch FlashSpace
+                  <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg>
+                </button>
+                <button onclick="navigateTo('login')" class="inline-flex items-center text-sm font-medium text-slate-700 bg-white hover:bg-slate-50 border border-slate-200/90 px-4 py-2.5 rounded-lg transition-colors">Sign In</button>
+              </div>
+              <div class="w-full max-w-md bg-white/80 border border-slate-200/80 rounded-xl p-3.5 shadow-sm backdrop-blur-sm">
+                <div class="flex items-center justify-between text-xs text-slate-500 font-mono mb-2">
+                  <span id="landing-cluster">0 active spaces</span>
+                  <span id="landing-archives" class="text-emerald-600 font-medium">0 archives</span>
+                </div>
+                <div class="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                  <div id="landing-bar" class="bg-indigo-600 h-1.5 rounded-full progress-bar" style="width: 0%"></div>
+                </div>
+                <div class="flex items-center justify-between text-[11px] text-slate-400 mt-2 font-medium">
+                  <span id="landing-storage">0 B of 20.00 GB allocated</span>
+                  <span>Auto-ZIP Archive - Storage Reclaimed</span>
+                </div>
+              </div>
+            </main>
+            <footer class="relative z-10 w-full px-8 py-3.5 border-t border-slate-200/60 bg-white/40 text-xs text-slate-500">
+              <div class="max-w-7xl mx-auto flex items-center justify-between">
+                <div class="flex items-center gap-2 font-medium">
+                  <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                  <span>All systems operational</span>
+                </div>
+                <div class="text-slate-400">2026 FlashSpace Cloud Technologies</div>
+              </div>
+            </footer>
+          </div>
+
+          <!-- ============ LOGIN ============ -->
+          <div id="view-login" class="hidden fade-in">
+            <div class="max-w-md mx-auto pt-20">
+              <div class="bg-card rounded-xl border border-border p-8 shadow-xs">
+                <h2 class="font-display text-xl font-bold text-primary mb-6">Sign in to FlashSpace</h2>
+                <div id="auth-error" class="hidden mb-4 p-3 bg-red-50 text-red-700 rounded-lg text-[13px]"></div>
+                <div id="auth-form-login">
+                  <label class="block text-[13px] font-medium text-primary mb-1">Email</label>
+                  <input id="login-email" type="email" class="w-full px-4 py-2.5 border border-border rounded-lg mb-4 focus:ring-2 focus:ring-brand focus:border-brand outline-none text-[13px]" placeholder="you@example.com">
+                  <label class="block text-[13px] font-medium text-primary mb-1">Password</label>
+                  <input id="login-pass" type="password" class="w-full px-4 py-2.5 border border-border rounded-lg mb-6 focus:ring-2 focus:ring-brand focus:border-brand outline-none text-[13px]" placeholder="••••••••">
+                  <button onclick="doLogin()" class="w-full py-2.5 bg-brand text-white rounded-lg font-semibold hover:bg-brand-700 transition text-[14px]">Sign In</button>
+                  <p class="text-[13px] text-muted text-center mt-4">No account? <button onclick="toggleAuthForm()" class="text-brand font-medium hover:underline">Register</button></p>
+                  <div class="mt-6 pt-4 border-t border-border/50">
+                    <p class="text-[11px] text-muted mb-3 text-center">Quick demo accounts:</p>
+                    <div class="flex gap-2">
+                      <button onclick="quickLogin('owner')" class="flex-1 py-2 text-[12px] bg-slate-50 border border-border rounded-lg hover:bg-slate-100 transition font-medium text-primary">Owner</button>
+                      <button onclick="quickLogin('editor')" class="flex-1 py-2 text-[12px] bg-slate-50 border border-border rounded-lg hover:bg-slate-100 transition font-medium text-primary">Editor</button>
+                      <button onclick="quickLogin('viewer')" class="flex-1 py-2 text-[12px] bg-slate-50 border border-border rounded-lg hover:bg-slate-100 transition font-medium text-primary">Viewer</button>
+                    </div>
+                  </div>
+                </div>
+                <div id="auth-form-register" class="hidden">
+                  <label class="block text-[13px] font-medium text-primary mb-1">Display Name</label>
+                  <input id="reg-name" type="text" class="w-full px-4 py-2.5 border border-border rounded-lg mb-4 focus:ring-2 focus:ring-brand focus:border-brand outline-none text-[13px]" placeholder="Your name">
+                  <label class="block text-[13px] font-medium text-primary mb-1">Email</label>
+                  <input id="reg-email" type="email" class="w-full px-4 py-2.5 border border-border rounded-lg mb-4 focus:ring-2 focus:ring-brand focus:border-brand outline-none text-[13px]" placeholder="you@example.com">
+                  <label class="block text-[13px] font-medium text-primary mb-1">Password</label>
+                  <input id="reg-pass" type="password" class="w-full px-4 py-2.5 border border-border rounded-lg mb-6 focus:ring-2 focus:ring-brand focus:border-brand outline-none text-[13px]" placeholder="Min 8 characters">
+                  <button onclick="doRegister()" class="w-full py-2.5 bg-brand text-white rounded-lg font-semibold hover:bg-brand-700 transition text-[14px]">Create Account</button>
+                  <p class="text-[13px] text-muted text-center mt-4">Already have an account? <button onclick="toggleAuthForm()" class="text-brand font-medium hover:underline">Sign In</button></p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ============ DASHBOARD ============ -->
+          <div id="view-dashboard" class="hidden fade-in">
+            <section class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pt-2">
+              <div>
+                <h1 id="dashboard-greeting" class="font-display text-[22px] font-bold text-primary tracking-tight">Good morning</h1>
+                <p class="text-[13px] text-muted mt-0.5">Manage your temporary workspaces, countdowns, and archives.</p>
+              </div>
+              <button onclick="navigateTo('create-space')" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-brand text-white text-[13px] font-medium hover:bg-brand-700 transition shadow-xs">
+                <span class="material-symbols-outlined text-[18px]">add</span>
+                <span>Create New Space</span>
+              </button>
+            </section>
+            <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div class="p-4 rounded-xl bg-card border border-border shadow-xs flex flex-col justify-between">
+                <div class="flex items-center justify-between text-muted">
+                  <span class="text-[12px] font-medium">Active Spaces</span>
+                  <span class="material-symbols-outlined text-[16px] text-slate-400">grid_view</span>
+                </div>
+                <div class="mt-3">
+                  <span id="stat-active" class="font-display text-2xl font-bold text-primary">0</span>
+                  <p class="text-[12px] text-muted mt-0.5">Ephemeral workspaces</p>
+                </div>
+              </div>
+              <div class="p-4 rounded-xl bg-card border border-border shadow-xs flex flex-col justify-between">
+                <div class="flex items-center justify-between text-muted">
+                  <span class="text-[12px] font-medium">Expiring Soon</span>
+                  <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-600 border border-amber-200">Requires action</span>
+                </div>
+                <div class="mt-3">
+                  <span id="stat-expiring" class="font-display text-2xl font-bold text-primary">0</span>
+                  <p class="text-[12px] text-muted mt-0.5">Requires action (&lt;48h)</p>
+                </div>
+              </div>
+              <div class="p-4 rounded-xl bg-card border border-border shadow-xs flex flex-col justify-between">
+                <div class="flex items-center justify-between text-muted">
+                  <span class="text-[12px] font-medium">Ephemeral Storage</span>
+                  <span id="storage-pct" class="font-mono text-[11px] text-muted">0%</span>
+                </div>
+                <div class="mt-3 space-y-1.5">
+                  <div class="flex items-baseline gap-1">
+                    <span id="storage-used" class="font-display text-2xl font-bold text-primary">0 GB</span>
+                    <span class="text-[12px] text-muted">of 20 GB allocated</span>
+                  </div>
+                  <div class="w-full h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                    <div id="storage-bar" class="h-full bg-brand rounded-full progress-bar" style="width: 0%"></div>
+                  </div>
+                </div>
+              </div>
+              <div class="p-4 rounded-xl bg-card border border-border shadow-xs flex flex-col justify-between">
+                <div class="flex items-center justify-between text-muted">
+                  <span class="text-[12px] font-medium">Vault Archives</span>
+                  <span class="material-symbols-outlined text-[16px] text-slate-400">inventory_2</span>
+                </div>
+                <div class="mt-3">
+                  <span id="stat-archives" class="font-display text-2xl font-bold text-primary">0 ZIPs</span>
+                  <p class="text-[12px] text-muted mt-0.5">ZIP snapshots stored</p>
+                </div>
+              </div>
+            </section>
+            <div id="notifications-bar" class="hidden"></div>
+            <section class="space-y-4">
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <h2 class="font-display text-base font-bold text-primary tracking-tight">Active Workspaces</h2>
+                <div class="flex items-center gap-3">
+                  <div class="inline-flex p-1 rounded-lg bg-slate-100/90 text-[12px] font-medium text-muted">
+                    <button onclick="filterSpaces('all')" class="filter-tab px-2.5 py-1 rounded-md transition-all" data-filter="all">All (<span id="filter-count-all">0</span>)</button>
+                    <button onclick="filterSpaces('ACTIVE')" class="filter-tab px-2.5 py-1 rounded-md transition-all" data-filter="ACTIVE">Active (<span id="filter-count-active">0</span>)</button>
+                    <button onclick="filterSpaces('WARNING')" class="filter-tab px-2.5 py-1 rounded-md transition-all flex items-center gap-1.5" data-filter="WARNING">
+                      <span>Expiring Soon (<span id="filter-count-warning">0</span>)</span>
+                      <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                    </button>
+                    <button onclick="filterSpaces('ARCHIVED')" class="filter-tab px-2.5 py-1 rounded-md transition-all" data-filter="ARCHIVED">Archived (<span id="filter-count-archived">0</span>)</button>
+                  </div>
+                </div>
+              </div>
+              <div id="spaces-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+            </section>
+            <section class="mt-8">
+              <h2 class="font-display text-base font-bold text-primary tracking-tight mb-4">Your Vault</h2>
+              <div id="vault-list" class="grid md:grid-cols-2 gap-4"></div>
+              <p id="vault-empty" class="text-[13px] text-muted italic hidden">No archives yet. When a Space expires, a ZIP archive appears here.</p>
+            </section>
+          </div>
+
+          <!-- ============ CREATE SPACE ============ -->
+          <div id="view-create-space" class="hidden fade-in">
+            <div class="max-w-2xl mx-auto">
+              <button onclick="navigateTo('dashboard')" class="text-[13px] text-muted hover:text-primary mb-6 inline-flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">arrow_back</span> Dashboard</button>
+              <div class="bg-card rounded-xl border border-border p-8 shadow-xs">
+                <h2 class="font-display text-xl font-bold text-primary mb-1">Create a Space</h2>
+                <p class="text-[13px] text-muted mb-8">Set up a temporary workspace for your project</p>
+                <label class="block text-[13px] font-medium text-primary mb-1">Space Name</label>
+                <input id="space-name" type="text" class="w-full px-4 py-2.5 border border-border rounded-lg mb-5 focus:ring-2 focus:ring-brand focus:border-brand outline-none text-[13px]" placeholder="e.g. VIBE HACK 2026">
+                <label class="block text-[13px] font-medium text-primary mb-1">Purpose</label>
+                <input id="space-purpose" type="text" class="w-full px-4 py-2.5 border border-border rounded-lg mb-5 focus:ring-2 focus:ring-brand focus:border-brand outline-none text-[13px]" placeholder="e.g. Weekend hackathon project">
+                <label class="block text-[13px] font-medium text-primary mb-1">Description</label>
+                <textarea id="space-desc" class="w-full px-4 py-2.5 border border-border rounded-lg mb-5 focus:ring-2 focus:ring-brand focus:border-brand outline-none resize-none text-[13px]" rows="2" placeholder="Brief description..."></textarea>
+                <div class="grid grid-cols-2 gap-4 mb-6">
+                  <div><label class="block text-[13px] font-medium text-primary mb-1">Start Date</label><input id="space-start" type="datetime-local" class="w-full px-4 py-2.5 border border-border rounded-lg focus:ring-2 focus:ring-brand focus:border-brand outline-none text-[13px]"></div>
+                  <div><label class="block text-[13px] font-medium text-primary mb-1">Expiry Date</label><input id="space-expiry" type="datetime-local" class="w-full px-4 py-2.5 border border-border rounded-lg focus:ring-2 focus:ring-brand focus:border-brand outline-none text-[13px]"></div>
+                </div>
+                <div class="bg-brand-50 rounded-lg p-4 mb-6 border border-brand-100">
+                  <p class="text-[11px] text-brand font-semibold mb-2">Quick Demo Mode</p>
+                  <div class="flex gap-2">
+                    <button onclick="setDemoExpiry(1)" class="text-[12px] px-3 py-1.5 bg-white border border-brand-200 rounded-lg hover:bg-brand-100 transition font-medium text-brand">Set 1-min expiry</button>
+                    <button onclick="setDemoExpiry(3)" class="text-[12px] px-3 py-1.5 bg-white border border-brand-200 rounded-lg hover:bg-brand-100 transition font-medium text-brand">Set 3-min expiry</button>
+                  </div>
+                </div>
+                <label class="block text-[13px] font-medium text-primary mb-1">Invite Collaborators (email)</label>
+                <div id="members-list" class="flex flex-wrap gap-2 mb-4"></div>
+                <div class="flex gap-2 mb-8">
+                  <input id="invite-email" type="email" class="flex-1 px-4 py-2.5 border border-border rounded-lg focus:ring-2 focus:ring-brand focus:border-brand outline-none text-[13px]" placeholder="collaborator@example.com">
+                  <select id="invite-role" class="px-3 py-2.5 border border-border rounded-lg text-[13px] outline-none"><option value="EDITOR">Editor</option><option value="VIEWER">Viewer</option></select>
+                  <button onclick="addMember()" class="px-4 py-2.5 bg-slate-100 text-primary rounded-lg text-[13px] font-medium hover:bg-slate-200 transition">Add</button>
+                </div>
+                <button onclick="createSpace()" class="w-full py-3 bg-brand text-white rounded-lg font-semibold hover:bg-brand-700 transition shadow-sm text-[14px]">Create Space</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- ============ SPACE DETAIL ============ -->
+          <div id="view-space" class="hidden fade-in">
+            <div class="flex items-center gap-2 text-[13px] text-muted mb-4">
+              <span class="hover:text-primary cursor-pointer" onclick="navigateTo('dashboard')">Spaces</span>
+              <span class="material-symbols-outlined text-[14px]">chevron_right</span>
+              <span id="breadcrumb-space" class="text-primary font-medium"></span>
+            </div>
+            <div class="bg-card rounded-xl border border-border p-6 mb-6 shadow-xs">
+              <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                <div class="flex-1">
+                  <div class="flex items-center gap-3 mb-2">
+                    <h1 id="space-title" class="font-display text-xl font-bold text-primary"></h1>
+                    <div id="space-status-badge" class="px-2 py-0.5 rounded text-[11px] font-medium"></div>
+                  </div>
+                  <p id="space-purpose-text" class="text-[13px] text-muted mb-4"></p>
+                  <div class="flex flex-wrap items-center gap-4 text-[12px] text-muted">
+                    <div><span class="text-[10px] uppercase font-semibold tracking-wider text-muted/80 block">Start Time</span><span id="space-start-date" class="text-primary font-medium"></span></div>
+                    <div><span class="text-[10px] uppercase font-semibold tracking-wider text-muted/80 block">End Time</span><span id="space-expiry-date" class="text-primary font-medium"></span></div>
+                    <div><span class="text-[10px] uppercase font-semibold tracking-wider text-muted/80 block">Storage</span><div class="flex items-center gap-2"><div class="w-16 h-1.5 rounded-full bg-slate-100 overflow-hidden"><div id="space-storage-bar" class="h-full bg-brand rounded-full" style="width: 0%"></div></div><span id="space-storage-text" class="font-mono text-primary"></span></div></div>
+                    <div><span class="text-[10px] uppercase font-semibold tracking-wider text-muted/80 block">Collaborators</span><span id="space-members-count" class="text-primary font-medium"></span></div>
+                    <div><span class="text-[10px] uppercase font-semibold tracking-wider text-muted/80 block">Access Level</span><span id="space-access-level" class="text-primary font-medium"></span></div>
+                  </div>
+                </div>
+                <div class="flex items-center gap-2 flex-shrink-0 flex-wrap justify-end">
+                  <span id="space-countdown" class="font-mono text-[13px] font-medium"></span>
+                  <button id="space-archive-btn" onclick="confirmArchiveSpace()" class="hidden px-3 py-1.5 bg-slate-100 text-primary rounded-lg text-[12px] font-medium hover:bg-slate-200 transition border border-border">Archive Space</button>
+                  <button id="space-restore-btn" onclick="restoreSpace(currentSpaceId)" class="hidden px-3 py-1.5 bg-slate-100 text-primary rounded-lg text-[12px] font-medium hover:bg-slate-200 transition border border-border">Restore Space</button>
+                  <button id="space-delete-btn" onclick="confirmDeleteSpace()" class="hidden px-3 py-1.5 bg-red-50 text-red-600 rounded-lg text-[12px] font-medium hover:bg-red-100 transition border border-red-200">Delete Space</button>
+                </div>
+              </div>
+              <div id="expiry-warning" class="hidden mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                <p class="text-[13px] text-amber-700 font-medium">This Space is expiring soon!</p>
+                <p class="text-[12px] text-amber-600 mt-1">Files will be archived and collaborators will lose access.</p>
+                <button onclick="requestExtension()" class="mt-2 text-[12px] px-3 py-1 bg-amber-100 text-amber-700 rounded-lg hover:bg-amber-200 font-medium transition">Request Extension</button>
+              </div>
+            </div>
+            <div class="flex gap-1 mb-6 border-b border-border">
+              <button onclick="switchSpaceTab('overview')" class="space-tab px-4 py-2.5 text-[13px] font-medium text-muted hover:text-primary transition" data-stab="overview">Overview</button>
+              <button onclick="switchSpaceTab('files')" class="space-tab px-4 py-2.5 text-[13px] font-medium text-muted hover:text-primary transition flex items-center gap-1.5" data-stab="files"><span class="material-symbols-outlined text-[16px]">folder</span> Files <span id="files-count-badge" class="px-1.5 py-0.5 rounded bg-slate-100 text-[11px] font-medium">0</span></button>
+              <button onclick="switchSpaceTab('members')" class="space-tab px-4 py-2.5 text-[13px] font-medium text-muted hover:text-primary transition" data-stab="members">Members</button>
+              <button onclick="switchSpaceTab('activity')" class="space-tab px-4 py-2.5 text-[13px] font-medium text-muted hover:text-primary transition" data-stab="activity">Audit Log</button>
+              <button onclick="switchSpaceTab('settings')" class="space-tab px-4 py-2.5 text-[13px] font-medium text-muted hover:text-primary transition" data-stab="settings">Settings</button>
+            </div>
+            <div id="space-tab-overview" class="hidden fade-in"><div class="grid grid-cols-1 md:grid-cols-3 gap-4"><div class="bg-card rounded-xl border border-border p-5 shadow-xs"><p class="text-[12px] text-muted font-medium mb-2">Files</p><p id="overview-files" class="font-display text-2xl font-bold text-primary">0</p></div><div class="bg-card rounded-xl border border-border p-5 shadow-xs"><p class="text-[12px] text-muted font-medium mb-2">Members</p><p id="overview-members" class="font-display text-2xl font-bold text-primary">0</p></div><div class="bg-card rounded-xl border border-border p-5 shadow-xs"><p class="text-[12px] text-muted font-medium mb-2">Time Remaining</p><p id="overview-time" class="font-display text-2xl font-bold text-primary">--</p></div></div></div>
+            <div id="space-tab-files" class="hidden fade-in">
+              <div id="upload-zone" class="bg-card rounded-xl border-2 border-dashed border-border p-8 text-center mb-6 hover:border-brand transition cursor-pointer" onclick="document.getElementById('file-input').click()">
+                <input id="file-input" type="file" multiple class="hidden" onchange="handleFileUpload(event)">
+                <span class="material-symbols-outlined text-[40px] text-slate-300 mb-3 block">cloud_upload</span>
+                <p class="font-semibold text-primary text-[14px]">Drop files here or click to upload</p>
+                <p class="text-[12px] text-muted mt-1">Max 50 MB per file</p>
+              </div>
+              <div id="files-list" class="space-y-2"></div>
+              <p id="files-empty" class="text-[13px] text-muted italic text-center py-8 hidden">No files yet. Upload something to get started!</p>
+            </div>
+            <div id="space-tab-members" class="hidden fade-in space-y-6">
+              <!-- Current Members -->
+              <div class="bg-card rounded-xl border border-border overflow-hidden">
+                <div class="px-6 py-4 border-b border-border flex items-center justify-between">
+                  <h3 class="font-semibold text-primary text-[14px]">Current Members</h3>
+                  <span id="members-count-label" class="text-[12px] text-muted"></span>
+                </div>
+                <table class="w-full text-[13px]"><thead class="bg-slate-50 border-b border-border"><tr><th class="px-6 py-3 text-left font-medium text-muted">User</th><th class="px-6 py-3 text-left font-medium text-muted">Role</th><th class="px-6 py-3 text-left font-medium text-muted">Status</th><th class="px-6 py-3 text-left font-medium text-muted">Joined</th></tr></thead><tbody id="members-table" class="divide-y divide-border/50"></tbody></table>
+              </div>
+              <!-- Invite Members -->
+              <div id="invite-section" class="hidden bg-card rounded-xl border border-border p-6">
+                <h3 class="font-semibold text-primary text-[14px] mb-4">Invite Members</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <!-- Invite via Link -->
+                  <div class="space-y-3">
+                    <div class="flex items-center gap-2">
+                      <span class="material-symbols-outlined text-[18px] text-brand">link</span>
+                      <span class="text-[13px] font-medium text-primary">Invite via Link</span>
+                    </div>
+                    <p class="text-[12px] text-muted">Generate a unique link that others can use to request access.</p>
+                    <div class="flex gap-2">
+                      <input id="invite-link-input" type="text" readonly class="flex-1 px-3 py-2 bg-slate-50 border border-border rounded-lg text-[12px] font-mono text-muted truncate" placeholder="Click Generate to create link">
+                      <button onclick="generateInviteLink()" class="px-3 py-2 bg-brand text-white rounded-lg text-[12px] font-medium hover:bg-brand-700 transition">Generate</button>
+                      <button onclick="copyInviteLink()" id="copy-link-btn" class="hidden px-3 py-2 bg-slate-100 text-primary rounded-lg text-[12px] font-medium hover:bg-slate-200 transition">Copy</button>
+                    </div>
+                  </div>
+                  <!-- Invite via Email -->
+                  <div class="space-y-3">
+                    <div class="flex items-center gap-2">
+                      <span class="material-symbols-outlined text-[18px] text-brand">mail</span>
+                      <span class="text-[13px] font-medium text-primary">Invite via Email</span>
+                    </div>
+                    <p class="text-[12px] text-muted">Send an invitation to a user's email address.</p>
+                    <div class="flex gap-2">
+                      <input id="email-invite-input" type="email" class="flex-1 px-3 py-2 border border-border rounded-lg text-[12px] focus:ring-2 focus:ring-brand focus:border-brand outline-none" placeholder="user@example.com">
+                      <select id="email-invite-role" class="px-2 py-2 border border-border rounded-lg text-[12px] outline-none">
+                        <option value="EDITOR">Editor</option>
+                        <option value="VIEWER">Viewer</option>
+                      </select>
+                      <button onclick="inviteByEmail()" class="px-3 py-2 bg-brand text-white rounded-lg text-[12px] font-medium hover:bg-brand-700 transition">Send</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <!-- Pending Join Requests -->
+              <div id="pending-requests-section" class="hidden bg-card rounded-xl border border-border overflow-hidden">
+                <div class="px-6 py-4 border-b border-border">
+                  <h3 class="font-semibold text-primary text-[14px]">Pending Join Requests</h3>
+                </div>
+                <table class="w-full text-[13px]"><thead class="bg-slate-50 border-b border-border"><tr><th class="px-6 py-3 text-left font-medium text-muted">User</th><th class="px-6 py-3 text-left font-medium text-muted">Request Type</th><th class="px-6 py-3 text-left font-medium text-muted">Requested</th><th class="px-6 py-3 text-right font-medium text-muted">Action</th></tr></thead><tbody id="pending-requests-table" class="divide-y divide-border/50"></tbody></table>
+              </div>
+            </div>
+            <div id="space-tab-activity" class="hidden fade-in"><div class="bg-card rounded-xl border border-border p-6"><div id="activity-timeline" class="space-y-4"></div><p id="activity-empty" class="text-[13px] text-muted italic text-center py-8 hidden">No activity yet.</p></div></div>
+            <div id="space-tab-settings" class="hidden fade-in"><div class="bg-card rounded-xl border border-border p-6 shadow-xs"><h3 class="font-semibold text-primary mb-4">Space Settings</h3><p class="text-[13px] text-muted">Space settings will be available here.</p></div></div>
+          </div>
+
+          <!-- ============ MY SPACES ============ -->
+          <div id="view-my-spaces" class="hidden fade-in">
+            <section class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pt-2 mb-6">
+              <div>
+                <h1 class="font-display text-[22px] font-bold text-primary tracking-tight">My Spaces</h1>
+                <p class="text-[13px] text-muted mt-0.5">Workspaces you created, their storage footprint, and archives.</p>
+              </div>
+              <button onclick="navigateTo('create-space')" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-brand text-white text-[13px] font-medium hover:bg-brand-700 transition shadow-xs">
+                <span class="material-symbols-outlined text-[18px]">add</span>
+                <span>Create New Space</span>
+              </button>
+            </section>
+            <section class="p-4 rounded-xl bg-card border border-border shadow-xs mb-6">
+              <div class="flex items-center justify-between mb-3">
+                <div class="flex items-center gap-2">
+                  <span class="material-symbols-outlined text-[18px] text-slate-400">storage</span>
+                  <span class="font-display text-[13px] font-bold text-primary tracking-tight">Storage Usage</span>
+                </div>
+                <span id="my-storage-pct" class="font-mono text-[11px] text-muted">0% used</span>
+              </div>
+              <div class="w-full h-2.5 rounded-full bg-slate-100 overflow-hidden flex">
+                <div id="my-storage-used-bar" class="h-full bg-brand progress-bar" style="width: 0%"></div>
+                <div id="my-storage-archived-bar" class="h-full bg-purple-500 progress-bar" style="width: 0%"></div>
+                <div id="my-storage-free-bar" class="h-full bg-slate-200 progress-bar" style="width: 100%"></div>
+              </div>
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-3">
+                <div class="flex items-center gap-2">
+                  <span class="w-2 h-2 rounded-full bg-brand flex-shrink-0"></span>
+                  <div><p class="text-[11px] text-muted leading-tight">Active Storage Used</p><p id="my-storage-used" class="text-[13px] font-semibold text-primary leading-tight">0 B</p></div>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="w-2 h-2 rounded-full bg-purple-500 flex-shrink-0"></span>
+                  <div><p class="text-[11px] text-muted leading-tight">Archived Storage Used</p><p id="my-storage-archived" class="text-[13px] font-semibold text-primary leading-tight">0 B</p></div>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="w-2 h-2 rounded-full bg-slate-200 flex-shrink-0"></span>
+                  <div><p class="text-[11px] text-muted leading-tight">Free / Available</p><p id="my-storage-free" class="text-[13px] font-semibold text-primary leading-tight">0 B</p></div>
+                </div>
+              </div>
+              <p id="my-storage-total" class="text-[11px] text-muted mt-3 pt-3 border-t border-border/60">0 B of 20.00 GB allocated</p>
+            </section>
+            <section class="space-y-4">
+              <div class="inline-flex p-1 rounded-lg bg-slate-100/90 text-[12px] font-medium text-muted">
+                <button onclick="switchMySpacesTab('active')" class="my-tab px-3 py-1 rounded-md transition-all" data-mytab="active">Active (<span id="my-count-active">0</span>)</button>
+                <button onclick="switchMySpacesTab('archived')" class="my-tab px-3 py-1 rounded-md transition-all" data-mytab="archived">Archived (<span id="my-count-archived">0</span>)</button>
+              </div>
+              <div id="my-spaces-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+            </section>
+          </div>
+
+          <!-- ============ NOTIFICATIONS ============ -->
+          <div id="view-notifications" class="hidden fade-in">
+            <section class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pt-2 mb-6">
+              <div>
+                <h1 class="font-display text-[22px] font-bold text-primary tracking-tight">Notifications</h1>
+                <p id="notifications-subtitle" class="text-[13px] text-muted mt-0.5">Activity from your workspaces.</p>
+              </div>
+              <button onclick="markAllNotificationsRead()" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-border text-[13px] font-medium text-primary hover:bg-slate-50 transition">
+                <span class="material-symbols-outlined text-[16px]">done_all</span>
+                <span>Mark all as read</span>
+              </button>
+            </section>
+            <div id="notifications-list" class="space-y-2"></div>
+            <p id="notifications-empty" class="hidden text-[13px] text-muted italic text-center py-12">No notifications yet. Create a Space or upload a file to get started.</p>
+          </div>
+
+          <!-- ============ VAULT ============ -->
+          <div id="view-vault" class="hidden fade-in">
+            <section class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pt-2 mb-6">
+              <div><h1 class="font-display text-[22px] font-bold text-primary tracking-tight">Vault Archives</h1><p class="text-[13px] text-muted mt-0.5">Permanent ZIP snapshots stored when a Space expires or is deleted.</p></div>
+              <div class="flex gap-2">
+                <button onclick="exportVaultIndex()" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-brand text-white text-[13px] font-medium hover:bg-brand-700 transition shadow-xs"><span class="material-symbols-outlined text-[16px]">download</span> Export Index (CSV)</button>
+              </div>
+            </section>
+            <section class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+              <div class="p-4 rounded-xl bg-card border border-border shadow-xs"><div class="flex items-center justify-between text-muted mb-2"><span class="text-[12px] font-medium">Total Archived</span></div><span id="vault-stat-total" class="font-display text-2xl font-bold text-primary">0</span><p class="text-[12px] text-muted mt-0.5">Spaces packaged in ZIP</p></div>
+              <div class="p-4 rounded-xl bg-card border border-border shadow-xs"><div class="flex items-center justify-between text-muted mb-2"><span class="text-[12px] font-medium">Cold Storage</span></div><span id="vault-stat-storage" class="font-display text-2xl font-bold text-primary">0 B</span><p class="text-[12px] text-muted mt-0.5">of 50.00 GB allocated</p></div>
+              <div class="p-4 rounded-xl bg-card border border-border shadow-xs"><div class="flex items-center justify-between text-muted mb-2"><span class="text-[12px] font-medium">Archived (This Month)</span></div><span id="vault-stat-monthly" class="font-display text-2xl font-bold text-primary">0</span><p class="text-[12px] text-muted mt-0.5">Spaces this month</p></div>
+            </section>
+            <div class="bg-card rounded-xl border border-border overflow-hidden mb-6"><table class="w-full text-[13px]"><thead class="bg-slate-50 border-b border-border"><tr><th class="px-6 py-3 text-left font-medium text-muted">Archive Name</th><th class="px-6 py-3 text-left font-medium text-muted">Source Space Purpose</th><th class="px-6 py-3 text-left font-medium text-muted">Archived Date</th><th class="px-6 py-3 text-left font-medium text-muted">Files & Size</th><th class="px-6 py-3 text-right font-medium text-muted">Actions</th></tr></thead><tbody id="vault-table" class="divide-y divide-border/50"></tbody></table></div>
+          </div>
+
+          <!-- ============ ADMIN ============ -->
+          <div id="view-admin" class="hidden fade-in">
+            <section class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pt-2 mb-6">
+              <div><div class="flex items-center gap-3"><h1 class="font-display text-[22px] font-bold text-primary tracking-tight">Admin & Lifecycle Management</h1><span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-semibold"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Daemon Active</span></div><p class="text-[13px] text-muted mt-0.5">Cluster orchestration, time extension requests, and automated archival logs.</p></div>
+            </section>
+            <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+              <div class="p-4 rounded-xl bg-card border border-border shadow-xs"><div class="flex items-center justify-between text-muted mb-2"><span class="text-[11px] font-semibold uppercase tracking-wider">Total Users</span></div><span id="admin-total-users" class="font-display text-2xl font-bold text-primary">0</span><p class="text-[11px] text-muted mt-0.5">Registered accounts</p></div>
+              <div class="p-4 rounded-xl bg-card border border-border shadow-xs"><div class="flex items-center justify-between text-muted mb-2"><span class="text-[11px] font-semibold uppercase tracking-wider">Active Spaces</span></div><span id="admin-active-spaces" class="font-display text-2xl font-bold text-primary">0</span><p class="text-[11px] text-muted mt-0.5">Live workspaces</p></div>
+              <div class="p-4 rounded-xl bg-card border border-border shadow-xs"><div class="flex items-center justify-between text-muted mb-2"><span class="text-[11px] font-semibold uppercase tracking-wider">Warning Window</span></div><span id="admin-warning-window" class="font-display text-2xl font-bold text-amber-600">0</span><p class="text-[11px] text-muted mt-0.5">&lt;48h to purge</p></div>
+              <div class="p-4 rounded-xl bg-card border border-border shadow-xs"><div class="flex items-center justify-between text-muted mb-2"><span class="text-[11px] font-semibold uppercase tracking-wider">Pending Tickets</span></div><span id="admin-pending-tickets" class="font-display text-2xl font-bold text-brand">0</span><p id="admin-pending-note" class="text-[11px] text-muted mt-0.5">No pending requests</p></div>
+              <div class="p-4 rounded-xl bg-card border border-border shadow-xs"><div class="flex items-center justify-between text-muted mb-2"><span class="text-[11px] font-semibold uppercase tracking-wider">Archival Pipeline</span></div><span id="admin-pipeline" class="font-display text-2xl font-bold text-primary">0%</span><p id="admin-pipeline-note" class="text-[11px] text-muted mt-0.5">No archival jobs yet</p></div>
+            </section>
+            <section class="mb-6">
+              <h2 class="font-display text-base font-bold text-primary tracking-tight mb-3">Pending Extension Requests</h2>
+              <div class="bg-card rounded-xl border border-border overflow-hidden">
+                <table class="w-full text-[13px]">
+                  <thead class="bg-slate-50 border-b border-border"><tr><th class="px-6 py-3 text-left font-medium text-muted">Space</th><th class="px-6 py-3 text-left font-medium text-muted">Requested By</th><th class="px-6 py-3 text-left font-medium text-muted">Current End Time</th><th class="px-6 py-3 text-left font-medium text-muted">Requested</th><th class="px-6 py-3 text-right font-medium text-muted">Action</th></tr></thead>
+                  <tbody id="admin-requests-table" class="divide-y divide-border/50"></tbody>
+                </table>
+              </div>
+            </section>
+            <section>
+              <h2 class="font-display text-base font-bold text-primary tracking-tight mb-3">Daemon Activity Log</h2>
+              <div class="bg-card rounded-xl border border-border overflow-hidden">
+                <table class="w-full text-[13px]">
+                  <thead class="bg-slate-50 border-b border-border"><tr><th class="px-6 py-3 text-left font-medium text-muted">Event</th><th class="px-6 py-3 text-left font-medium text-muted">Space</th><th class="px-6 py-3 text-left font-medium text-muted">Actor</th><th class="px-6 py-3 text-left font-medium text-muted">Timestamp</th></tr></thead>
+                  <tbody id="admin-logs-table" class="divide-y divide-border/50"></tbody>
+                </table>
+              </div>
+            </section>
+          </div>
+
+          <!-- ============ PROFILE ============ -->
+          <div id="view-profile" class="hidden fade-in">
+            <div class="max-w-2xl mx-auto">
+              <button onclick="navigateTo('dashboard')" class="text-[13px] text-muted hover:text-primary mb-6 inline-flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">arrow_back</span> Dashboard</button>
+              <div class="bg-card rounded-xl border border-border p-8 shadow-xs">
+                <div class="flex items-center gap-4 mb-8">
+                  <div id="profile-avatar" class="w-16 h-16 rounded-full bg-brand text-white flex items-center justify-center text-2xl font-bold"></div>
+                  <div><h2 id="profile-name" class="font-display text-xl font-bold text-primary"></h2><p id="profile-email" class="text-[13px] text-muted"></p></div>
+                </div>
+                <div class="grid grid-cols-2 gap-4 mb-8">
+                  <div class="bg-slate-50 rounded-lg p-4"><p class="text-[11px] text-muted uppercase tracking-wide font-semibold">Role</p><p id="profile-role" class="text-lg font-bold text-primary mt-1"></p></div>
+                  <div class="bg-slate-50 rounded-lg p-4"><p class="text-[11px] text-muted uppercase tracking-wide font-semibold">Spaces Owned</p><p id="profile-spaces" class="text-lg font-bold text-primary mt-1">0</p></div>
+                  <div class="bg-slate-50 rounded-lg p-4"><p class="text-[11px] text-muted uppercase tracking-wide font-semibold">Total Files</p><p id="profile-files" class="text-lg font-bold text-primary mt-1">0</p></div>
+                  <div class="bg-slate-50 rounded-lg p-4"><p class="text-[11px] text-muted uppercase tracking-wide font-semibold">Archives</p><p id="profile-archives" class="text-lg font-bold text-primary mt-1">0</p></div>
+                </div>
+                <div class="border-t border-border pt-6">
+                  <h3 class="font-semibold text-primary mb-4">Account Settings</h3>
+                  <label class="block text-[13px] font-medium text-primary mb-1">Display Name</label>
+                  <div class="flex gap-2 mb-4"><input id="profile-edit-name" type="text" class="flex-1 px-4 py-2.5 border border-border rounded-lg focus:ring-2 focus:ring-brand focus:border-brand outline-none text-[13px]"><button onclick="updateProfileName()" class="px-4 py-2.5 bg-brand text-white rounded-lg text-[13px] font-medium hover:bg-brand-700 transition">Save</button></div>
+                  <button onclick="logout()" class="px-5 py-2.5 bg-red-50 text-red-600 rounded-lg font-semibold hover:bg-red-100 transition text-[13px]">Logout</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Confirmation Modal -->
+  <div id="confirm-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+    <div class="bg-card rounded-xl shadow-xl max-w-md w-full p-6">
+      <div class="flex items-center gap-3 mb-4">
+        <div class="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center"><span class="material-symbols-outlined text-red-600">delete_forever</span></div>
+        <h3 id="confirm-title" class="text-lg font-bold text-primary"></h3>
+      </div>
+      <p id="confirm-message" class="text-[13px] text-muted mb-6"></p>
+      <div class="flex gap-3 justify-end">
+        <button onclick="closeConfirmModal()" class="px-4 py-2 text-[13px] font-medium text-primary bg-slate-100 rounded-lg hover:bg-slate-200 transition">Cancel</button>
+        <button id="confirm-action-btn" class="px-4 py-2 text-[13px] font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast-container" class="fixed bottom-4 right-4 z-50 space-y-2"></div>
+
+<script>
+// ── Application State ──
+let currentUser = null;
+let currentSpaceId = null;
+let currentView = 'landing';
+let currentSpaceTab = 'files';
+let currentFilter = 'all';
+let countdownInterval = null;
+let pendingMembers = [];
+let viewHistory = [];
+let mySpacesTab = 'active';
+
+// ── Storage quotas (single source of truth for every storage calculation) ──
+const STORAGE_QUOTA_BYTES = 20 * 1024 * 1024 * 1024;   // 20 GB ephemeral allowance
+const SPACE_QUOTA_BYTES = 5 * 1024 * 1024 * 1024;       // 5 GB per Space
+const VAULT_QUOTA_BYTES = 50 * 1024 * 1024 * 1024;      // 50 GB cold storage allowance
+
+// ── Demo Database ──
+const db = {
+  users: {
+    owner:  { id: 'owner',  name: 'Khushi Patel', email: 'khushi@demo.com',  role: 'ADMIN', dept: 'Computer Eng.' },
+    editor: { id: 'editor', name: 'Alex Chen',    email: 'alex@demo.com',    role: 'USER', dept: 'Engineering' },
+    viewer: { id: 'viewer', name: 'Sam Wilson',   email: 'sam@demo.com',     role: 'USER', dept: 'Design' },
+  },
+  spaces: [],
+  files: {},
+  activities: {},
+  archives: [],
+  members: {},
+  notifications: [],
+  extensionRequests: [],
+  inviteRequests: [],  // join requests from link or email invites
+};
+
+// ── Helper: Get greeting based on time of day ──
+function getGreeting() {
+  const h = new Date().getHours();
+  if (h < 12) return 'Good morning';
+  if (h < 17) return 'Good afternoon';
+  return 'Good evening';
+}
+
+// ── Helper: Format file size ──
+function formatSize(bytes) {
+  if (bytes >= 1073741824) return (bytes / 1073741824).toFixed(2) + ' GB';
+  if (bytes > 1048576) return (bytes / 1048576).toFixed(1) + ' MB';
+  if (bytes >= 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes || 0) + ' B';
+}
+
+// ── Helper: Format any byte count using real data only ──
+function formatBytes(bytes) {
+  return formatSize(bytes || 0);
+}
+
+// ── Helper: Format a stored timestamp as a readable local date + time ──
+function formatDateTime(value) {
+  return new Date(value).toLocaleString('en-US', {
+    month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit'
+  });
+}
+
+// ── Storage helpers: every number is derived from actual uploaded file sizes ──
+function spaceBytes(spaceId) {
+  return (db.files[spaceId] || []).reduce((sum, f) => sum + (f.size || 0), 0);
+}
+
+function spacesBytes(spaces) {
+  return spaces.reduce((sum, s) => sum + spaceBytes(s.id), 0);
+}
+
+function archiveBytes() {
+  return db.archives.reduce((sum, a) => sum + (a.bytes || 0), 0);
+}
+
+// ── Workspace queries ──
+function isMemberOf(space) {
+  if (!currentUser || !space) return false;
+  if (space.ownerId === currentUser.id) return true;
+  return (db.members[space.id] || []).some(m => m.userId === currentUser.id);
+}
+
+// Spaces the current user can see (deleted Spaces are excluded everywhere)
+function getMySpaces() {
+  if (!currentUser) return [];
+  return db.spaces.filter(s => s.status !== 'DELETED' && isMemberOf(s));
+}
+
+// Spaces the current user created
+function getOwnedSpaces() {
+  if (!currentUser) return [];
+  return db.spaces.filter(s => s.status !== 'DELETED' && s.ownerId === currentUser.id);
+}
+
+// ── Activity + notification writers ──
+function addActivity(spaceId, action, meta) {
+  if (!spaceId || !db.activities[spaceId]) return;
+  db.activities[spaceId].push({
+    action,
+    user: (meta && meta.by) || (currentUser ? currentUser.name : 'System'),
+    time: new Date(),
+    meta: meta || {}
+  });
+}
+
+const NOTIF_META = {
+  SPACE_CREATED:       { icon: 'add_box',        tint: 'text-brand bg-brand-50' },
+  SPACE_WARNING:       { icon: 'schedule',       tint: 'text-amber-600 bg-amber-50' },
+  SPACE_EXPIRED:       { icon: 'event_busy',     tint: 'text-red-600 bg-red-50' },
+  SPACE_ARCHIVED:      { icon: 'inventory_2',    tint: 'text-purple-600 bg-purple-50' },
+  SPACE_RESTORED:      { icon: 'unarchive',      tint: 'text-emerald-600 bg-emerald-50' },
+  SPACE_DELETED:       { icon: 'delete',         tint: 'text-red-600 bg-red-50' },
+  FILE_UPLOADED:       { icon: 'upload_file',    tint: 'text-slate-600 bg-slate-100' },
+  MEMBER_ADDED:        { icon: 'person_add',     tint: 'text-slate-600 bg-slate-100' },
+  EXTENSION_REQUESTED: { icon: 'pending_actions', tint: 'text-amber-600 bg-amber-50' },
+  EXTENSION_APPROVED:  { icon: 'check_circle',   tint: 'text-emerald-600 bg-emerald-50' },
+  EXTENSION_REJECTED:  { icon: 'cancel',         tint: 'text-red-600 bg-red-50' },
+  JOIN_REQUESTED:     { icon: 'group_add',      tint: 'text-blue-600 bg-blue-50' },
+  JOIN_APPROVED:      { icon: 'check_circle',   tint: 'text-emerald-600 bg-emerald-50' },
+  JOIN_DECLINED:      { icon: 'cancel',         tint: 'text-red-600 bg-red-50' },
+  INVITE_SENT:        { icon: 'mail',           tint: 'text-brand bg-brand-50' },
+};
+
+function pushNotification(type, title, message, spaceId) {
+  db.notifications.unshift({
+    id: 'notif_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+    type, title, message,
+    spaceId: spaceId || null,
+    at: new Date(),
+    read: false
+  });
+  updateNotifBadge();
+}
+
+function isMyNotification(n) {
+  if (!n.spaceId) return true;
+  const space = db.spaces.find(s => s.id === n.spaceId);
+  return space ? isMemberOf(space) : false;
+}
+
+function updateNotifBadge() {
+  const badge = document.getElementById('notif-badge');
+  if (!badge) return;
+  const unread = db.notifications.filter(n => isMyNotification(n) && !n.read).length;
+  badge.textContent = unread > 9 ? '9+' : String(unread);
+  badge.classList.toggle('hidden', unread === 0);
+  badge.classList.toggle('flex', unread > 0);
+}
+
+// ── Helper: Format relative time ──
+function timeAgo(date) {
+  const seconds = Math.floor((Date.now() - date) / 1000);
+  if (seconds < 60) return 'just now';
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return minutes + 'm ago';
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return hours + 'h ago';
+  const days = Math.floor(hours / 24);
+  return days + 'd ago';
+}
+
+// ── Authentication Module ──
+
+function toggleAuthForm() {
+  document.getElementById('auth-form-login').classList.toggle('hidden');
+  document.getElementById('auth-form-register').classList.toggle('hidden');
+  document.getElementById('auth-error').classList.add('hidden');
+}
+
+function updateNavUser() {
+  if (!currentUser) return;
+  const initial = currentUser.name.charAt(0).toUpperCase();
+  document.getElementById('sidebar-avatar').textContent = initial;
+  document.getElementById('sidebar-username').textContent = currentUser.name;
+  document.getElementById('sidebar-userrole').textContent = currentUser.dept || currentUser.role;
+  document.getElementById('topbar-avatar').textContent = initial;
+  document.getElementById('topbar-name').textContent = currentUser.name;
+  document.getElementById('topbar-role').textContent = currentUser.role === 'ADMIN' ? 'Creator' : currentUser.role;
+}
+
+function quickLogin(role) {
+  currentUser = db.users[role];
+  viewHistory = [];
+  updateNavUser();
+  navigateTo('dashboard', { replace: true });
+}
+
+// ── Launch Space CTA (homepage + top nav) ──
+// Signed out: go to Sign In. Signed in: continue into the app.
+function launchSpace() {
+  if (!currentUser) { navigateTo('login'); return; }
+  navigateTo('dashboard');
+}
+
+function doLogin() {
+  const email = document.getElementById('login-email').value;
+  const pass = document.getElementById('login-pass').value;
+  if (!email || !pass) { showAuthError('Please fill in all fields'); return; }
+
+  // Check registered users first
+  const found = Object.values(db.users).find(u => u.email === email);
+  if (found) {
+    currentUser = found;
+    viewHistory = [];
+    updateNavUser();
+    navigateTo('dashboard', { replace: true });
+    showToast('Welcome back, ' + currentUser.name + '!');
+    return;
+  }
+
+  // Fallback to demo accounts by email pattern
+  const role = email.includes('admin') || email.includes('khushi') ? 'owner'
+    : email.includes('alex') ? 'editor' : 'viewer';
+  quickLogin(role);
+}
+
+function doRegister() {
+  const name = document.getElementById('reg-name').value;
+  const email = document.getElementById('reg-email').value;
+  const pass = document.getElementById('reg-pass').value;
+
+  if (!name || !email || !pass) { showAuthError('Please fill in all fields'); return; }
+  if (pass.length < 8) { showAuthError('Password must be at least 8 characters'); return; }
+  if (Object.values(db.users).some(u => u.email === email)) { showAuthError('Email already registered'); return; }
+
+  const id = 'user_' + Date.now();
+  db.users[id] = { id, name, email, role: 'USER', dept: 'User', createdAt: new Date() };
+  currentUser = db.users[id];
+  viewHistory = [];
+  updateNavUser();
+  navigateTo('dashboard', { replace: true });
+  showToast('Account created! Welcome, ' + name + '!');
+}
+
+function showAuthError(msg) {
+  const el = document.getElementById('auth-error');
+  el.textContent = msg;
+  el.classList.remove('hidden');
+}
+
+function logout() {
+  currentUser = null;
+  currentSpaceId = null;
+  viewHistory = [];
+  if (countdownInterval) clearInterval(countdownInterval);
+  document.getElementById('auth-nav').classList.remove('hidden');
+  document.getElementById('sidebar').classList.add('hidden');
+  document.getElementById('topbar').classList.add('hidden');
+  navigateTo('landing', { replace: true });
+  showToast('Logged out successfully');
+}
+
+// ── Dashboard View ──
+
+function renderDashboard() {
+  if (!currentUser) return;
+  const name = currentUser.name.split(' ')[0];
+  document.getElementById('dashboard-greeting').textContent = getGreeting() + ', ' + name;
+
+  const mySpaces = getMySpaces();
+
+  const active = mySpaces.filter(s => s.status === 'ACTIVE').length;
+  const expiring = mySpaces.filter(s => s.status === 'WARNING').length;
+  const archived = mySpaces.filter(s => s.status === 'ARCHIVED').length;
+
+  // Real storage usage: sum of the actual sizes of uploaded files
+  const usedBytes = spacesBytes(mySpaces.filter(s => s.status !== 'ARCHIVED'));
+  const pct = Math.min(100, (usedBytes / STORAGE_QUOTA_BYTES) * 100).toFixed(0);
+
+  document.getElementById('stat-active').textContent = active;
+  document.getElementById('stat-expiring').textContent = expiring;
+  document.getElementById('stat-archives').textContent = db.archives.length + ' ZIPs';
+  document.getElementById('storage-pct').textContent = pct + '%';
+  document.getElementById('storage-bar').style.width = pct + '%';
+  document.getElementById('storage-used').textContent = formatBytes(usedBytes);
+
+  document.getElementById('filter-count-all').textContent = active + expiring;
+  document.getElementById('filter-count-active').textContent = active;
+  document.getElementById('filter-count-warning').textContent = expiring;
+  document.getElementById('filter-count-archived').textContent = archived;
+
+  updateNotifBadge();
+  renderExpiryBanner(mySpaces);
+  renderSpacesGrid(mySpaces);
+  renderVault();
+  renderLandingTelemetry();
+}
+
+// Amber “expiring soon” banner for the Spaces the user can see
+function renderExpiryBanner(spaces) {
+  const bar = document.getElementById('notifications-bar');
+  const warnings = spaces.filter(s => s.status === 'WARNING');
+  if (warnings.length === 0) { bar.classList.add('hidden'); bar.innerHTML = ''; return; }
+  bar.classList.remove('hidden');
+  bar.innerHTML = warnings.map(s =>
+    `<div class="p-3 bg-amber-50 border border-amber-200 rounded-lg mb-2 flex items-center justify-between">
+      <span class="text-[13px] text-amber-700"><strong>${s.name}</strong> is expiring soon!</span>
+      <button onclick="openSpace('${s.id}')" class="text-[12px] font-medium text-amber-700 underline">View</button>
+    </div>`
+  ).join('');
+}
+
+// Landing hero telemetry - driven by real application state
+function renderLandingTelemetry() {
+  const active = db.spaces.filter(s => s.status === 'ACTIVE' || s.status === 'WARNING').length;
+  const used = spacesBytes(db.spaces.filter(s => s.status === 'ACTIVE' || s.status === 'WARNING'));
+  const pct = Math.min(100, (used / STORAGE_QUOTA_BYTES) * 100);
+  const cluster = document.getElementById('landing-cluster');
+  if (!cluster) return;
+  cluster.textContent = active + ' active space' + (active === 1 ? '' : 's');
+  document.getElementById('landing-archives').textContent = db.archives.length + ' archive' + (db.archives.length === 1 ? '' : 's');
+  document.getElementById('landing-bar').style.width = pct.toFixed(pct > 0 && pct < 1 ? 1 : 0) + '%';
+  document.getElementById('landing-storage').textContent = formatBytes(used) + ' of ' + formatBytes(STORAGE_QUOTA_BYTES) + ' allocated';
+}
+
+function openSpace(spaceId) {
+  currentSpaceId = spaceId;
+  navigateTo('space');
+}
+
+// ── Space action menu (three-dot) shared by dashboard + My Spaces cards ──
+function spaceMenuButton(space) {
+  return `<button onclick="toggleSpaceMenu(event, '${space.id}')" title="More actions" class="w-6 h-6 rounded-md text-muted hover:text-primary hover:bg-slate-100 transition-colors flex items-center justify-center flex-shrink-0"><span class="material-symbols-outlined text-[16px]">more_vert</span></button>`;
+}
+
+function spaceMenu(space) {
+  const archived = space.status === 'ARCHIVED';
+  return `<div id="space-menu-${space.id}" class="hidden absolute right-4 top-14 w-44 bg-card border border-border rounded-lg shadow-lg py-1 z-30">
+    <button onclick="event.stopPropagation();closeAllSpaceMenus();openSpace('${space.id}')" class="w-full text-left px-3 py-2 text-[12px] font-medium text-primary hover:bg-slate-50 flex items-center gap-2"><span class="material-symbols-outlined text-[16px]">open_in_new</span>Open Space</button>
+    ${archived
+      ? `<button onclick="event.stopPropagation();closeAllSpaceMenus();restoreSpace('${space.id}')" class="w-full text-left px-3 py-2 text-[12px] font-medium text-primary hover:bg-slate-50 flex items-center gap-2"><span class="material-symbols-outlined text-[16px]">unarchive</span>Restore Space</button>`
+      : `<button onclick="event.stopPropagation();closeAllSpaceMenus();confirmArchiveSpace('${space.id}')" class="w-full text-left px-3 py-2 text-[12px] font-medium text-primary hover:bg-slate-50 flex items-center gap-2"><span class="material-symbols-outlined text-[16px]">inventory_2</span>Archive Space</button>`}
+    <div class="h-px bg-border my-1"></div>
+    <button onclick="event.stopPropagation();closeAllSpaceMenus();confirmDeleteSpace('${space.id}')" class="w-full text-left px-3 py-2 text-[12px] font-medium text-red-600 hover:bg-red-50 flex items-center gap-2"><span class="material-symbols-outlined text-[16px]">delete</span>Delete Space</button>
+  </div>`;
+}
+
+function toggleSpaceMenu(event, spaceId) {
+  event.stopPropagation();
+  const menu = document.getElementById('space-menu-' + spaceId);
+  const wasOpen = menu && !menu.classList.contains('hidden');
+  closeAllSpaceMenus();
+  if (menu && !wasOpen) menu.classList.remove('hidden');
+}
+
+function closeAllSpaceMenus() {
+  document.querySelectorAll('[id^="space-menu-"]').forEach(m => m.classList.add('hidden'));
+}
+
+document.addEventListener('click', closeAllSpaceMenus);
+
+function filterSpaces(filter) {
+  currentFilter = filter;
+  document.querySelectorAll('.filter-tab').forEach(b => {
+    if (b.dataset.filter === filter) {
+      b.classList.add('bg-white', 'text-primary', 'font-semibold', 'shadow-xs');
+    } else {
+      b.classList.remove('bg-white', 'text-primary', 'font-semibold', 'shadow-xs');
+    }
+  });
+  renderDashboard();
+}
+
+function renderSpacesGrid(spaces) {
+  // Archived workspaces never show in the active list - they live in My Spaces > Archived
+  const filtered = currentFilter === 'all'
+    ? spaces.filter(s => s.status !== 'ARCHIVED')
+    : spaces.filter(s => s.status === currentFilter);
+  const grid = document.getElementById('spaces-grid');
+  if (filtered.length === 0) {
+    grid.innerHTML = `<div class="col-span-full text-center py-12 text-muted">
+      <span class="material-symbols-outlined text-[48px] text-slate-300 mb-3 block">folder_open</span>
+      <p class="font-medium text-[14px]">No spaces ${currentFilter !== 'all' ? 'with status ' + currentFilter : ''}</p>
+      <button onclick="navigateTo('create-space')" class="mt-3 text-[13px] text-brand hover:underline">Create your first Space</button>
+    </div>`;
+    return;
+  }
+  grid.innerHTML = filtered.map(s => {
+    const total = (s.expiryAt - s.startAt) || 1;
+    const elapsed = Math.min(1, Math.max(0, (Date.now() - s.startAt) / total));
+    const elapsedPct = (elapsed * 100).toFixed(0);
+    const remaining = s.expiryAt - Date.now();
+    const days = Math.floor(remaining / 86400000);
+    const hours = Math.floor((remaining % 86400000) / 3600000);
+    const fileCount = (db.files[s.id] || []).length;
+    const storage = formatBytes(spaceBytes(s.id));
+    const members = db.members[s.id] || [];
+    const memberCount = members.length;
+
+    const statusBadge = {
+      ACTIVE: remaining > 48*3600000 ? 'bg-slate-100 text-slate-700 border border-slate-200' : 'bg-amber-50 text-amber-700 border border-amber-200',
+      WARNING: 'bg-amber-50 text-amber-700 border border-amber-200',
+      ARCHIVING: 'bg-blue-50 text-blue-700 border border-blue-200',
+      ARCHIVED: 'bg-purple-50 text-purple-700 border border-purple-200',
+      DELETED: 'bg-red-50 text-red-700 border border-red-200',
+    };
+    const progressColor = elapsed > 0.8 ? 'bg-red-500' : elapsed > 0.5 ? 'bg-amber-500' : 'bg-brand';
+    const expiryLabel = remaining > 0 ? `Expires in ${days}d ${hours}h` : 'Expired';
+    const autoDate = new Date(s.expiryAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+    return `<div class="relative p-5 rounded-xl bg-card border border-border shadow-xs hover:border-slate-300 transition-all flex flex-col justify-between space-y-4">
+      <div class="space-y-3">
+        <div class="flex items-start justify-between gap-2">
+          <h3 class="font-display text-[15px] font-semibold text-primary tracking-tight hover:text-brand transition-colors cursor-pointer" onclick="openSpace('${s.id}')">${s.name}</h3>
+          <div class="flex items-center gap-1 flex-shrink-0">
+            <span class="px-2 py-0.5 rounded text-[11px] font-medium ${statusBadge[s.status] || statusBadge.ACTIVE}">${expiryLabel}</span>
+            ${spaceMenuButton(s)}
+          </div>
+        </div>
+        <p class="text-[13px] text-muted line-clamp-2 leading-relaxed">${s.purpose || s.description || 'No description'}</p>
+        <div class="space-y-1.5 pt-1">
+          <div class="flex justify-between text-[11px] text-muted">
+            <span>Auto-archive ${autoDate}</span>
+            <span class="font-mono ${elapsed > 0.8 ? 'text-red-500' : elapsed > 0.5 ? 'text-amber-600' : 'text-muted'} font-medium">${elapsedPct}% elapsed</span>
+          </div>
+          <div class="w-full h-1.5 rounded-full bg-slate-100 overflow-hidden">
+            <div class="h-full ${progressColor} rounded-full" style="width: ${Math.min(100, elapsedPct)}%"></div>
+          </div>
+        </div>
+      </div>
+      <div class="pt-3 border-t border-border flex items-center justify-between gap-2">
+        <div class="flex items-center gap-3">
+          <div class="flex -space-x-2">
+            ${members.slice(0, 3).map((m, i) => `<div class="w-6 h-6 rounded-full bg-brand/${10 + i*20} text-brand text-[10px] font-semibold flex items-center justify-center border border-white">${m.name.charAt(0)}</div>`).join('')}
+            ${memberCount > 3 ? `<div class="w-6 h-6 rounded-full bg-slate-100 text-slate-600 text-[10px] font-semibold flex items-center justify-center border border-white">+${memberCount - 3}</div>` : ''}
+          </div>
+          <span class="text-[12px] text-muted">${memberCount} members</span>
+          <span class="text-slate-300">•</span>
+          <span class="font-mono text-[11px] text-muted">${fileCount} files</span>
+          <span class="text-slate-300">•</span>
+          <span class="font-mono text-[11px] text-muted">${storage}</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="openSpace('${s.id}')" class="px-3 py-1.5 rounded-lg bg-brand text-white text-[12px] font-medium hover:bg-brand-700 transition shadow-xs">Open Space</button>
+        </div>
+      </div>
+      ${spaceMenu(s)}
+    </div>`;
+  }).join('');
+}
+
+// ── Vault (dashboard section) ──
+
+function renderVault() {
+  const vaultList = document.getElementById('vault-list');
+  const vaultEmpty = document.getElementById('vault-empty');
+  if (db.archives.length === 0) {
+    vaultList.classList.add('hidden');
+    vaultEmpty.classList.remove('hidden');
+    return;
+  }
+  vaultList.classList.remove('hidden');
+  vaultEmpty.classList.add('hidden');
+  vaultList.innerHTML = db.archives.map(a => `
+    <div class="p-4 rounded-xl bg-card border border-border shadow-xs flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-lg zip-icon flex items-center justify-center text-white">
+          <span class="material-symbols-outlined text-[18px]">folder_zip</span>
+        </div>
+        <div>
+          <p class="text-[13px] font-semibold text-primary">${a.name}.zip</p>
+          <p class="text-[11px] text-muted">${a.files} files • ${a.size}</p>
+        </div>
+      </div>
+      <button onclick="downloadZip('${a.id}')" class="px-3 py-1.5 rounded-lg border border-border text-[12px] font-medium text-primary hover:bg-slate-50 transition">Download</button>
+    </div>
+  `).join('');
+}
+
+// ── Vault View ──
+
+function renderVaultView() {
+  const now = new Date();
+  const thisMonth = db.archives.filter(a => {
+    const d = new Date(a.archivedAt);
+    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+  }).length;
+  document.getElementById('vault-stat-total').textContent = db.archives.length;
+  document.getElementById('vault-stat-storage').textContent = formatBytes(archiveBytes());
+  document.getElementById('vault-stat-monthly').textContent = thisMonth;
+  const tbody = document.getElementById('vault-table');
+  if (db.archives.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-8 text-center text-muted italic">No archives yet. A ZIP snapshot is stored whenever a Space expires or is deleted.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = db.archives.map(a => {
+    const date = new Date(a.archivedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    const reason = a.reason === 'MANUAL_DELETE' ? 'Deleted by owner' : 'Expired automatically';
+    return `<tr class="hover:bg-slate-50">
+      <td class="px-6 py-4">
+        <div class="flex items-center gap-2">
+          <span class="material-symbols-outlined text-brand text-[18px]">folder_zip</span>
+          <div>
+            <span class="font-medium text-primary">${a.name}.zip</span><br>
+            <span class="text-[11px] text-muted font-mono">${reason}</span>
+          </div>
+        </div>
+      </td>
+      <td class="px-6 py-4 text-muted">${a.purpose || 'No description'}</td>
+      <td class="px-6 py-4 text-muted">${date}</td>
+      <td class="px-6 py-4"><span class="font-medium text-primary">${a.files} files</span><br><span class="text-[11px] text-muted">${a.size}</span></td>
+      <td class="px-6 py-4 text-right">
+        <button onclick="downloadZip('${a.id}')" class="px-3 py-1.5 rounded-lg bg-brand text-white text-[12px] font-medium hover:bg-brand-700 transition">Download</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function exportVaultIndex() {
+  if (db.archives.length === 0) { showToast('There are no archives to export'); return; }
+  const rows = [['Archive', 'Source Space', 'Archived At', 'Files', 'Size']]
+    .concat(db.archives.map(a => [
+      a.name + '.zip',
+      a.purpose || '',
+      new Date(a.archivedAt).toISOString(),
+      a.files,
+      a.size
+    ]));
+  const csv = rows.map(r => r.map(v => '"' + String(v).replace(/"/g, '""') + '"').join(',')).join('\n');
+  const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = 'flashspace-vault-index.csv';
+  link.click();
+  URL.revokeObjectURL(url);
+  showToast('Vault index exported');
+}
+
+// ── Space Detail ──
+
+function renderSpaceDetail() {
+  const space = db.spaces.find(s => s.id === currentSpaceId);
+  if (!space) { navigateTo('dashboard'); return; }
+
+  document.getElementById('breadcrumb-space').textContent = space.name;
+  document.getElementById('space-title').textContent = space.name;
+  document.getElementById('space-purpose-text').textContent = space.purpose || space.description || '';
+
+  const statusColors = {
+    ACTIVE: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
+    WARNING: 'bg-amber-50 text-amber-700 border border-amber-200',
+    ARCHIVING: 'bg-blue-50 text-blue-700 border border-blue-200',
+    ARCHIVED: 'bg-purple-50 text-purple-700 border border-purple-200',
+    DELETED: 'bg-red-50 text-red-700 border border-red-200',
+  };
+  const badge = document.getElementById('space-status-badge');
+  badge.textContent = space.status;
+  badge.className = 'px-2 py-0.5 rounded text-[11px] font-medium ' + (statusColors[space.status] || '');
+
+  // Start / End come from the lifespan the user selected when creating the Space
+  document.getElementById('space-start-date').textContent = formatDateTime(space.startAt);
+  document.getElementById('space-expiry-date').textContent = formatDateTime(space.expiryAt);
+
+  const fileCount = (db.files[space.id] || []).length;
+  const bytes = spaceBytes(space.id);
+  const storagePct = Math.min(100, (bytes / SPACE_QUOTA_BYTES) * 100);
+  document.getElementById('space-storage-bar').style.width = storagePct + '%';
+  document.getElementById('space-storage-text').textContent = formatBytes(bytes) + ' / ' + formatBytes(SPACE_QUOTA_BYTES);
+
+  const members = db.members[space.id] || [];
+  document.getElementById('space-members-count').textContent = members.length + ' members active';
+
+  const isOwner = space.ownerId === currentUser?.id;
+  document.getElementById('space-access-level').textContent = isOwner ? 'Owner (Admin)' : 'Member';
+
+  const isArchived = space.status === 'ARCHIVED';
+  toggleEl('space-delete-btn', isOwner);
+  toggleEl('space-archive-btn', isOwner && !isArchived);
+  toggleEl('space-restore-btn', isOwner && isArchived);
+
+  document.getElementById('files-count-badge').textContent = fileCount;
+
+  // Overview tab
+  document.getElementById('overview-files').textContent = fileCount;
+  document.getElementById('overview-members').textContent = members.length;
+  const remaining = space.expiryAt - Date.now();
+  const rDays = Math.floor(remaining / 86400000);
+  const rHours = Math.floor((remaining % 86400000) / 3600000);
+  document.getElementById('overview-time').textContent = remaining > 0 ? rDays + 'd ' + rHours + 'h' : 'Expired';
+
+  // Warning
+  const warning = document.getElementById('expiry-warning');
+  if (space.status === 'WARNING') {
+    warning.classList.remove('hidden');
+  } else {
+    warning.classList.add('hidden');
+  }
+
+  // Countdown
+  updateCountdown(space);
+
+  // Render current tab
+  switchSpaceTab(currentSpaceTab);
+}
+
+function toggleEl(id, show) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.classList.toggle('hidden', !show);
+}
+
+function updateCountdown(space) {
+  if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
+  const el = document.getElementById('space-countdown');
+  if (!el) return;
+  if (space.status === 'ARCHIVED') {
+    el.textContent = 'Archived';
+    el.className = 'font-mono text-[13px] font-medium text-purple-600';
+    return;
+  }
+  function tick() {
+    const remaining = space.expiryAt - Date.now();
+    if (remaining <= 0) {
+      el.textContent = 'Expired';
+      el.className = 'font-mono text-[13px] font-medium text-red-600';
+      return;
+    }
+    const d = Math.floor(remaining / 86400000);
+    const h = Math.floor((remaining % 86400000) / 3600000);
+    const m = Math.floor((remaining % 3600000) / 60000);
+    const s = Math.floor((remaining % 60000) / 1000);
+    el.textContent = `${d}d ${h}h ${m}m ${s}s`;
+    el.className = remaining < 3600000
+      ? 'font-mono text-[13px] font-medium text-red-600 countdown-urgent'
+      : remaining < 86400000
+        ? 'font-mono text-[13px] font-medium text-amber-600'
+        : 'font-mono text-[13px] font-medium text-muted';
+  }
+  tick();
+  countdownInterval = setInterval(tick, 1000);
+}
+
+function switchSpaceTab(tab) {
+  currentSpaceTab = tab;
+  document.querySelectorAll('.space-tab').forEach(t => {
+    if (t.dataset.stab === tab) {
+      t.classList.add('text-brand', 'border-b-2', 'border-brand');
+      t.classList.remove('text-muted');
+    } else {
+      t.classList.remove('text-brand', 'border-b-2', 'border-brand');
+      t.classList.add('text-muted');
+    }
+  });
+  document.querySelectorAll('.space-nav-link').forEach(l => {
+    if (l.dataset.stab === tab) {
+      l.classList.add('bg-surface-container', 'text-brand', 'font-semibold', 'rounded-lg');
+    } else {
+      l.classList.remove('bg-surface-container', 'text-brand', 'font-semibold', 'rounded-lg');
+    }
+  });
+  ['overview', 'files', 'members', 'activity', 'settings'].forEach(t => {
+    const el = document.getElementById('space-tab-' + t);
+    if (el) {
+      if (t === tab) el.classList.remove('hidden');
+      else el.classList.add('hidden');
+    }
+  });
+  if (tab === 'files') renderFiles();
+  if (tab === 'members') renderMembers();
+  if (tab === 'activity') renderActivity();
+}
+
+function renderFiles() {
+  const files = db.files[currentSpaceId] || [];
+  const list = document.getElementById('files-list');
+  const empty = document.getElementById('files-empty');
+  if (files.length === 0) {
+    list.classList.add('hidden');
+    empty.classList.remove('hidden');
+    return;
+  }
+  list.classList.remove('hidden');
+  empty.classList.add('hidden');
+  list.innerHTML = files.map(f => {
+    const size = formatSize(f.size);
+    return `<div class="flex items-center justify-between p-3 bg-card rounded-lg border border-border hover:border-slate-300 transition">
+      <div class="flex items-center gap-3">
+        <span class="material-symbols-outlined text-brand text-[18px]">description</span>
+        <div>
+          <p class="text-[13px] font-medium text-primary">${f.name}</p>
+          <p class="text-[11px] text-muted">${size} • Uploaded by ${f.uploadedBy}</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <button class="p-1.5 rounded hover:bg-slate-100 text-muted hover:text-primary transition">
+          <span class="material-symbols-outlined text-[16px]">download</span>
+        </button>
+        <button class="p-1.5 rounded hover:bg-slate-100 text-muted hover:text-red-500 transition">
+          <span class="material-symbols-outlined text-[16px]">delete</span>
+        </button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderMembers() {
+  const space = db.spaces.find(s => s.id === currentSpaceId);
+  const isOwner = space && space.ownerId === currentUser?.id;
+  const members = db.members[currentSpaceId] || [];
+
+  // Current members table
+  document.getElementById('members-count-label').textContent = members.length + ' member' + (members.length !== 1 ? 's' : '');
+  const tbody = document.getElementById('members-table');
+  tbody.innerHTML = members.map(m => {
+    const joinedDate = m.joinedAt ? formatDateTime(m.joinedAt) : (m.status === 'INVITED' ? 'Pending' : 'Since creation');
+    return `<tr>
+      <td class="px-6 py-3">
+        <div class="flex items-center gap-2">
+          <div class="w-7 h-7 rounded-full bg-brand/10 text-brand text-[11px] font-bold flex items-center justify-center">${m.name.charAt(0)}</div>
+          <div>
+            <p class="font-medium text-primary">${m.name}</p>
+            <p class="text-[11px] text-muted">${m.email}</p>
+          </div>
+        </div>
+      </td>
+      <td class="px-6 py-3"><span class="px-2 py-0.5 rounded text-[11px] font-medium ${m.role === 'OWNER' ? 'bg-brand-50 text-brand' : 'bg-slate-100 text-primary'}">${m.role}</span></td>
+      <td class="px-6 py-3"><span class="px-2 py-0.5 rounded text-[11px] font-medium ${m.status === 'ACTIVE' ? 'bg-emerald-50 text-emerald-700' : m.status === 'INVITED' ? 'bg-amber-50 text-amber-700' : 'bg-blue-50 text-blue-700'}">${m.status}</span></td>
+      <td class="px-6 py-3 text-muted text-[12px]">${joinedDate}</td>
+    </tr>`;
+  }).join('');
+
+  // Invite section (only for owners)
+  document.getElementById('invite-section').classList.toggle('hidden', !isOwner);
+
+  // Pending join requests (only for owners)
+  const pending = db.inviteRequests.filter(r => r.spaceId === currentSpaceId && r.status === 'PENDING');
+  const pendingSection = document.getElementById('pending-requests-section');
+  pendingSection.classList.toggle('hidden', !isOwner || pending.length === 0);
+  const pendingTbody = document.getElementById('pending-requests-table');
+  pendingTbody.innerHTML = pending.map(r => `<tr>
+    <td class="px-6 py-3">
+      <div class="flex items-center gap-2">
+        <div class="w-7 h-7 rounded-full bg-blue-100 text-blue-700 text-[11px] font-bold flex items-center justify-center">${r.userName.charAt(0)}</div>
+        <div>
+          <p class="font-medium text-primary">${r.userName}</p>
+          <p class="text-[11px] text-muted">${r.userEmail}</p>
+        </div>
+      </div>
+    </td>
+    <td class="px-6 py-3"><span class="px-2 py-0.5 rounded text-[11px] font-medium ${r.type === 'LINK' ? 'bg-blue-50 text-blue-700' : 'bg-brand-50 text-brand'}">${r.type === 'LINK' ? 'Link Request' : 'Email Invite'}</span></td>
+    <td class="px-6 py-3 text-muted text-[12px]">${timeAgo(new Date(r.requestedAt).getTime())}</td>
+    <td class="px-6 py-3 text-right">
+      <div class="inline-flex gap-2">
+        <button onclick="acceptJoinRequest('${r.id}')" class="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 text-[12px] font-medium hover:bg-emerald-100 transition">Accept</button>
+        <button onclick="declineJoinRequest('${r.id}')" class="px-2.5 py-1 rounded-lg bg-red-50 text-red-600 text-[12px] font-medium hover:bg-red-100 transition">Decline</button>
+      </div>
+    </td>
+  </tr>`).join('');
+}
+
+// ── Invite via Link ──
+
+let currentInviteLink = '';
+
+function generateInviteLink() {
+  const space = db.spaces.find(s => s.id === currentSpaceId);
+  if (!space) return;
+  const token = btoa(space.id + '_' + Date.now()).replace(/=/g, '').substring(0, 24);
+  currentInviteLink = window.location.origin + window.location.pathname + '#join=' + token;
+  document.getElementById('invite-link-input').value = currentInviteLink;
+  document.getElementById('copy-link-btn').classList.remove('hidden');
+  showToast('Invite link generated! Share it with collaborators.');
+}
+
+function copyInviteLink() {
+  const input = document.getElementById('invite-link-input');
+  input.select();
+  navigator.clipboard.writeText(input.value).then(() => {
+    showToast('Invite link copied to clipboard!');
+  }).catch(() => {
+    document.execCommand('copy');
+    showToast('Invite link copied!');
+  });
+}
+
+// ── Invite via Email ──
+
+function inviteByEmail() {
+  const emailInput = document.getElementById('email-invite-input');
+  const roleSelect = document.getElementById('email-invite-role');
+  const email = emailInput.value.trim();
+  const role = roleSelect.value;
+  if (!email) { showToast('Please enter an email address'); return; }
+  if (!email.includes('@')) { showToast('Please enter a valid email address'); return; }
+
+  const space = db.spaces.find(s => s.id === currentSpaceId);
+  if (!space) return;
+
+  // Check if already a member
+  const existing = (db.members[currentSpaceId] || []).find(m => m.email === email);
+  if (existing) { showToast('This user is already a member of this Space'); return; }
+
+  // Check for existing pending request
+  const existingRequest = db.inviteRequests.find(r =>
+    r.spaceId === currentSpaceId && r.userEmail === email && r.status === 'PENDING'
+  );
+  if (existingRequest) { showToast('An invitation for this email is already pending'); return; }
+
+  // Find or create the invited user
+  let invitedUser = Object.values(db.users).find(u => u.email === email);
+  const userName = invitedUser ? invitedUser.name : email.split('@')[0];
+  const userId = invitedUser ? invitedUser.id : 'invited_' + Date.now();
+
+  // Create the invite request
+  db.inviteRequests.push({
+    id: 'invreq_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+    spaceId: currentSpaceId,
+    spaceName: space.name,
+    type: 'EMAIL',
+    role: role,
+    userId: userId,
+    userName: userName,
+    userEmail: email,
+    invitedBy: currentUser.name,
+    requestedAt: new Date(),
+    status: 'PENDING'
+  });
+
+  // Add activity
+  addActivity(currentSpaceId, 'MEMBER_INVITED', { by: currentUser.name, member: email });
+
+  // Push notification to the invited user
+  pushNotification('INVITE_SENT', 'Workspace invitation',
+    `${currentUser.name} invited you to join "${space.name}" as ${role}.`, currentSpaceId);
+
+  emailInput.value = '';
+  showToast('Invitation sent to ' + email);
+  renderMembers();
+}
+
+// ── Accept / Decline Join Requests ──
+
+function acceptJoinRequest(requestId) {
+  const req = db.inviteRequests.find(r => r.id === requestId);
+  if (!req || req.status !== 'PENDING') return;
+  req.status = 'ACCEPTED';
+  req.resolvedAt = new Date();
+
+  // Add user as a member
+  const space = db.spaces.find(s => s.id === req.spaceId);
+  if (!db.members[req.spaceId]) db.members[req.spaceId] = [];
+  db.members[req.spaceId].push({
+    userId: req.userId,
+    name: req.userName,
+    email: req.userEmail,
+    role: req.role || 'EDITOR',
+    status: 'ACTIVE',
+    joinedAt: new Date()
+  });
+
+  addActivity(req.spaceId, 'MEMBER_JOINED', { by: req.userName });
+  pushNotification('JOIN_APPROVED', 'Join request approved',
+    `${req.userName} is now a member of "${req.spaceName}".`, req.spaceId);
+
+  showToast(req.userName + ' has been added to the Space');
+  if (currentView === 'space' && currentSpaceId === req.spaceId) renderMembers();
+  if (currentView === 'notifications') renderNotificationsView();
+}
+
+function declineJoinRequest(requestId) {
+  const req = db.inviteRequests.find(r => r.id === requestId);
+  if (!req || req.status !== 'PENDING') return;
+  req.status = 'DECLINED';
+  req.resolvedAt = new Date();
+
+  pushNotification('JOIN_DECLINED', 'Join request declined',
+    `The join request from ${req.userName} for "${req.spaceName}" was declined.`, req.spaceId);
+
+  showToast('Join request from ' + req.userName + ' declined');
+  if (currentView === 'space' && currentSpaceId === req.spaceId) renderMembers();
+  if (currentView === 'notifications') renderNotificationsView();
+}
+
+function renderActivity() {
+  const activities = db.activities[currentSpaceId] || [];
+  const timeline = document.getElementById('activity-timeline');
+  const empty = document.getElementById('activity-empty');
+  if (activities.length === 0) {
+    timeline.classList.add('hidden');
+    empty.classList.remove('hidden');
+    return;
+  }
+  timeline.classList.remove('hidden');
+  empty.classList.add('hidden');
+  timeline.innerHTML = activities.map(a => {
+    const time = new Date(a.time).toLocaleString();
+    return `<div class="flex items-start gap-3">
+      <div class="w-2 h-2 rounded-full bg-brand mt-2 flex-shrink-0"></div>
+      <div>
+        <p class="text-[13px] text-primary"><strong>${a.user}</strong> ${a.action.replace(/_/g, ' ').toLowerCase()}</p>
+        <p class="text-[11px] text-muted">${time}</p>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── Profile ──
+
+function renderProfile() {
+  if (!currentUser) return;
+  document.getElementById('profile-avatar').textContent = currentUser.name.charAt(0);
+  document.getElementById('profile-name').textContent = currentUser.name;
+  document.getElementById('profile-email').textContent = currentUser.email;
+  document.getElementById('profile-role').textContent = currentUser.role;
+  document.getElementById('profile-edit-name').value = currentUser.name;
+  const owned = db.spaces.filter(s => s.ownerId === currentUser.id);
+  document.getElementById('profile-spaces').textContent = owned.length;
+  const totalFiles = owned.reduce((sum, s) => sum + (db.files[s.id]?.length || 0), 0);
+  document.getElementById('profile-files').textContent = totalFiles;
+  document.getElementById('profile-archives').textContent = db.archives.filter(a => owned.some(s => s.id === a.spaceId)).length;
+}
+
+function updateProfileName() {
+  const name = document.getElementById('profile-edit-name').value;
+  if (!name) return;
+  currentUser.name = name;
+  updateNavUser();
+  showToast('Display name updated!');
+}
+
+// ── My Spaces ──
+
+function switchMySpacesTab(tab) {
+  mySpacesTab = tab;
+  renderMySpaces();
+}
+
+function renderMySpaces() {
+  if (!currentUser) return;
+  const owned = getOwnedSpaces();
+  const active = owned.filter(s => s.status !== 'ARCHIVED');
+  const archived = owned.filter(s => s.status === 'ARCHIVED');
+
+  document.getElementById('my-count-active').textContent = active.length;
+  document.getElementById('my-count-archived').textContent = archived.length;
+
+  document.querySelectorAll('.my-tab').forEach(b => {
+    const on = b.dataset.mytab === mySpacesTab;
+    b.classList.toggle('bg-white', on);
+    b.classList.toggle('text-primary', on);
+    b.classList.toggle('font-semibold', on);
+    b.classList.toggle('shadow-xs', on);
+  });
+
+  renderMyStorageGraph(owned);
+
+  const list = mySpacesTab === 'archived' ? archived : active;
+  const grid = document.getElementById('my-spaces-grid');
+  if (list.length === 0) {
+    grid.innerHTML = mySpacesTab === 'archived'
+      ? `<div class="col-span-full text-center py-12 text-muted"><span class="material-symbols-outlined text-[48px] text-slate-300 mb-3 block">inventory_2</span><p class="font-medium text-[14px]">You have not archived any Space yet</p><p class="text-[12px] mt-1">Use the three-dot menu on an active Space to archive it.</p></div>`
+      : `<div class="col-span-full text-center py-12 text-muted"><span class="material-symbols-outlined text-[48px] text-slate-300 mb-3 block">folder_open</span><p class="font-medium text-[14px]">You have not created any Space yet</p><button onclick="navigateTo('create-space')" class="mt-3 text-[13px] text-brand hover:underline">Create your first Space</button></div>`;
+    return;
+  }
+  grid.innerHTML = list.map(s => mySpaceCard(s)).join('');
+}
+
+// Storage usage graph for the workspaces this user created
+function renderMyStorageGraph(spaces) {
+  const used = spacesBytes(spaces.filter(s => s.status !== 'ARCHIVED'));
+  const archived = spacesBytes(spaces.filter(s => s.status === 'ARCHIVED'));
+  const total = Math.max(STORAGE_QUOTA_BYTES, used + archived);
+  const free = Math.max(0, total - used - archived);
+  const share = v => (total ? (v / total) * 100 : 0);
+
+  const setBar = (id, value) => {
+    const el = document.getElementById(id);
+    el.style.width = share(value) + '%';
+    // keep tiny but non-zero usage visible instead of rounding to an invisible sliver
+    el.style.minWidth = value > 0 ? '4px' : '0';
+  };
+  setBar('my-storage-used-bar', used);
+  setBar('my-storage-archived-bar', archived);
+  setBar('my-storage-free-bar', free);
+  document.getElementById('my-storage-used').textContent = formatBytes(used);
+  document.getElementById('my-storage-archived').textContent = formatBytes(archived);
+  document.getElementById('my-storage-free').textContent = formatBytes(free);
+
+  const usedPct = share(used + archived);
+  document.getElementById('my-storage-pct').textContent = (usedPct > 0 && usedPct < 1 ? usedPct.toFixed(1) : usedPct.toFixed(0)) + '% used';
+  document.getElementById('my-storage-total').textContent = formatBytes(used + archived) + ' of ' + formatBytes(total) + ' allocated';
+}
+
+function mySpaceCard(s) {
+  const bytes = spaceBytes(s.id);
+  const fileCount = (db.files[s.id] || []).length;
+  const members = db.members[s.id] || [];
+  const remaining = s.expiryAt - Date.now();
+  const days = Math.max(0, Math.floor(remaining / 86400000));
+  const hours = Math.max(0, Math.floor((remaining % 86400000) / 3600000));
+  const isArchived = s.status === 'ARCHIVED';
+  const badge = isArchived
+    ? 'bg-purple-50 text-purple-700 border border-purple-200'
+    : s.status === 'WARNING'
+      ? 'bg-amber-50 text-amber-700 border border-amber-200'
+      : 'bg-emerald-50 text-emerald-700 border border-emerald-200';
+  const label = isArchived ? 'Archived' : remaining > 0 ? `Expires in ${days}d ${hours}h` : 'Expired';
+  const total = (s.expiryAt - s.startAt) || 1;
+  const elapsed = Math.min(1, Math.max(0, (Date.now() - s.startAt) / total));
+  const elapsedPct = (elapsed * 100).toFixed(0);
+  const progressColor = elapsed > 0.8 ? 'bg-red-500' : elapsed > 0.5 ? 'bg-amber-500' : 'bg-brand';
+  const tailLabel = isArchived
+    ? 'Archived ' + new Date(s.archivedAt || s.expiryAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    : 'Auto-archive ' + new Date(s.expiryAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+  return `<div class="relative p-5 rounded-xl bg-card border border-border shadow-xs hover:border-slate-300 transition-all flex flex-col justify-between space-y-4">
+    <div class="space-y-3">
+      <div class="flex items-start justify-between gap-2">
+        <h3 class="font-display text-[15px] font-semibold text-primary tracking-tight hover:text-brand transition-colors cursor-pointer truncate" onclick="openSpace('${s.id}')">${s.name}</h3>
+        <div class="flex items-center gap-1 flex-shrink-0">
+          <span class="px-2 py-0.5 rounded text-[11px] font-medium ${badge}">${label}</span>
+          ${spaceMenuButton(s)}
+        </div>
+      </div>
+      <p class="text-[13px] text-muted line-clamp-2 leading-relaxed">${s.purpose || s.description || 'No description'}</p>
+      <div class="space-y-1.5 pt-1">
+        <div class="flex justify-between text-[11px] text-muted">
+          <span>${tailLabel}</span>
+          <span class="font-mono ${elapsed > 0.8 ? 'text-red-500' : elapsed > 0.5 ? 'text-amber-600' : 'text-muted'} font-medium">${elapsedPct}% elapsed</span>
+        </div>
+        <div class="w-full h-1.5 rounded-full bg-slate-100 overflow-hidden">
+          <div class="h-full ${progressColor} rounded-full" style="width: ${Math.min(100, elapsedPct)}%"></div>
+        </div>
+      </div>
+    </div>
+    <div class="pt-3 border-t border-border flex items-center justify-between gap-2">
+      <div class="flex items-center gap-3">
+        <span class="text-[12px] text-muted">${members.length} members</span>
+        <span class="text-slate-300">•</span>
+        <span class="font-mono text-[11px] text-muted">${fileCount} files</span>
+        <span class="text-slate-300">•</span>
+        <span class="font-mono text-[11px] text-muted">${formatBytes(bytes)}</span>
+      </div>
+      <button onclick="openSpace('${s.id}')" class="px-3 py-1.5 rounded-lg bg-brand text-white text-[12px] font-medium hover:bg-brand-700 transition shadow-xs">Open Space</button>
+    </div>
+    ${spaceMenu(s)}
+  </div>`;
+}
+
+// ── Notifications ──
+
+function renderNotificationsView() {
+  const list = db.notifications.filter(isMyNotification);
+  const container = document.getElementById('notifications-list');
+  const empty = document.getElementById('notifications-empty');
+  const unread = list.filter(n => !n.read).length;
+
+  document.getElementById('notifications-subtitle').textContent = list.length === 0
+    ? 'Activity from your workspaces.'
+    : list.length + ' event' + (list.length === 1 ? '' : 's') + ' • ' + unread + ' unread';
+
+  if (list.length === 0) {
+    container.innerHTML = '';
+    empty.classList.remove('hidden');
+    return;
+  }
+  empty.classList.add('hidden');
+  container.innerHTML = list.slice(0, 60).map(n => {
+    const meta = NOTIF_META[n.type] || { icon: 'notifications', tint: 'text-slate-600 bg-slate-100' };
+    const space = n.spaceId ? db.spaces.find(s => s.id === n.spaceId) : null;
+    // Check if this notification has an associated pending join request
+    const pendingRequest = n.type === 'INVITE_SENT' && n.spaceId
+      ? db.inviteRequests.find(r => r.spaceId === n.spaceId && r.status === 'PENDING' && r.invitedBy !== currentUser?.name)
+      : null;
+    // For JOIN_REQUESTED notifications, find the pending request by space
+    const joinRequest = n.type === 'JOIN_REQUESTED' && n.spaceId && currentUser
+      ? db.inviteRequests.find(r => r.spaceId === n.spaceId && r.status === 'PENDING' && db.spaces.find(s => s.id === r.spaceId)?.ownerId === currentUser.id)
+      : null;
+    return `<div class="p-4 rounded-xl border shadow-xs flex items-start gap-3 ${n.read ? 'bg-card border-border' : 'bg-brand-50/40 border-brand/30'}">
+      <div class="w-9 h-9 rounded-lg ${meta.tint} flex items-center justify-center flex-shrink-0"><span class="material-symbols-outlined text-[18px]">${meta.icon}</span></div>
+      <div class="flex-1 min-w-0">
+        <div class="flex items-start justify-between gap-3">
+          <p class="text-[13px] font-semibold text-primary">${n.title}</p>
+          <span class="text-[11px] text-muted flex-shrink-0">${timeAgo(new Date(n.at).getTime())}</span>
+        </div>
+        <p class="text-[12px] text-muted mt-0.5">${n.message}</p>
+        <div class="flex items-center gap-2 mt-2 flex-wrap">
+          ${space ? `<button onclick="openSpace('${space.id}')" class="text-[12px] font-medium text-brand hover:underline">Open ${space.name}</button>` : ''}
+          ${pendingRequest ? `
+            <button onclick="acceptJoinRequest('${pendingRequest.id}')" class="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 text-[11px] font-medium hover:bg-emerald-100 transition">Accept</button>
+            <button onclick="declineJoinRequest('${pendingRequest.id}')" class="px-2.5 py-1 rounded-lg bg-red-50 text-red-600 text-[11px] font-medium hover:bg-red-100 transition">Decline</button>
+          ` : ''}
+          ${joinRequest ? `
+            <button onclick="acceptJoinRequest('${joinRequest.id}')" class="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 text-[11px] font-medium hover:bg-emerald-100 transition">Accept</button>
+            <button onclick="declineJoinRequest('${joinRequest.id}')" class="px-2.5 py-1 rounded-lg bg-red-50 text-red-600 text-[11px] font-medium hover:bg-red-100 transition">Decline</button>
+          ` : ''}
+        </div>
+      </div>
+      ${n.read ? '' : '<span class="w-2 h-2 rounded-full bg-brand flex-shrink-0 mt-1.5"></span>'}
+    </div>`;
+  }).join('');
+
+  // Everything the user can see is considered read once the page is opened
+  db.notifications.forEach(n => { if (isMyNotification(n)) n.read = true; });
+  updateNotifBadge();
+}
+
+function markAllNotificationsRead() {
+  db.notifications.forEach(n => { if (isMyNotification(n)) n.read = true; });
+  updateNotifBadge();
+  renderNotificationsView();
+}
+
+// ── Admin Portal (all figures derived from live application data) ──
+
+function renderAdmin() {
+  const users = Object.keys(db.users).length;
+  const active = db.spaces.filter(s => s.status === 'ACTIVE').length;
+  const warning = db.spaces.filter(s => s.status === 'WARNING').length;
+  const pending = db.extensionRequests.filter(r => r.status === 'PENDING');
+  const jobs = db.spaces.filter(s => s.status === 'ARCHIVED' || s.status === 'DELETED').length;
+  const packaged = db.archives.length;
+
+  document.getElementById('admin-total-users').textContent = users;
+  document.getElementById('admin-active-spaces').textContent = active;
+  document.getElementById('admin-warning-window').textContent = warning;
+  document.getElementById('admin-pending-tickets').textContent = pending.length;
+  document.getElementById('admin-pending-note').textContent = pending.length
+    ? pending.length + ' awaiting sign-off'
+    : 'No pending requests';
+  document.getElementById('admin-pipeline').textContent = jobs
+    ? Math.round(Math.min(1, packaged / jobs) * 100) + '%'
+    : '0%';
+  document.getElementById('admin-pipeline-note').textContent = jobs
+    ? packaged + ' of ' + jobs + ' finished Spaces packaged'
+    : 'No archival jobs yet';
+
+  const reqBody = document.getElementById('admin-requests-table');
+  if (pending.length === 0) {
+    reqBody.innerHTML = '<tr><td colspan="5" class="px-6 py-8 text-center text-muted italic">No pending extension requests.</td></tr>';
+  } else {
+    reqBody.innerHTML = pending.map(r => {
+      const space = db.spaces.find(s => s.id === r.spaceId);
+      return `<tr>
+        <td class="px-6 py-3 font-medium text-primary">${r.spaceName}</td>
+        <td class="px-6 py-3 text-muted">${r.requestedBy}</td>
+        <td class="px-6 py-3 text-muted">${formatDateTime(space ? space.expiryAt : r.currentExpiry)}</td>
+        <td class="px-6 py-3 text-muted">${timeAgo(new Date(r.requestedAt).getTime())}</td>
+        <td class="px-6 py-3 text-right">
+          <div class="inline-flex gap-2">
+            <button onclick="approveExtension('${r.id}')" class="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 text-[12px] font-medium hover:bg-emerald-100 transition">Approve</button>
+            <button onclick="rejectExtension('${r.id}')" class="px-2.5 py-1 rounded-lg bg-red-50 text-red-600 text-[12px] font-medium hover:bg-red-100 transition">Reject</button>
+          </div>
+        </td>
+      </tr>`;
+    }).join('');
+  }
+
+  const logs = [];
+  Object.keys(db.activities).forEach(spaceId => {
+    const space = db.spaces.find(s => s.id === spaceId);
+    (db.activities[spaceId] || []).forEach(a => logs.push({
+      action: a.action, user: a.user, time: a.time,
+      spaceName: space ? space.name : 'Unknown space'
+    }));
+  });
+  logs.sort((a, b) => new Date(b.time) - new Date(a.time));
+
+  const logBody = document.getElementById('admin-logs-table');
+  if (logs.length === 0) {
+    logBody.innerHTML = '<tr><td colspan="4" class="px-6 py-8 text-center text-muted italic">No daemon activity recorded yet.</td></tr>';
+  } else {
+    logBody.innerHTML = logs.slice(0, 10).map(a => `<tr>
+      <td class="px-6 py-3 text-muted font-mono text-[12px]">${a.action.replace(/_/g, ' ')}</td>
+      <td class="px-6 py-3 text-primary">${a.spaceName}</td>
+      <td class="px-6 py-3 text-muted">${a.user}</td>
+      <td class="px-6 py-3 text-muted">${formatDateTime(a.time)}</td>
+    </tr>`).join('');
+  }
+}
+
+function approveExtension(requestId) {
+  const req = db.extensionRequests.find(r => r.id === requestId);
+  if (!req || req.status !== 'PENDING') return;
+  req.status = 'APPROVED';
+  req.resolvedAt = new Date();
+  const space = db.spaces.find(s => s.id === req.spaceId);
+  if (space) {
+    space.expiryAt = new Date(Math.max(space.expiryAt, Date.now()) + 48 * 3600000);
+    if (space.status === 'WARNING') space.status = 'ACTIVE';
+    addActivity(space.id, 'EXTENSION_APPROVED', { by: currentUser ? currentUser.name : 'Admin' });
+    pushNotification('EXTENSION_APPROVED', 'Extension approved', `"${space.name}" now ends ${formatDateTime(space.expiryAt)}.`, space.id);
+  }
+  showToast('Extension approved');
+  renderAdmin();
+  if (currentView === 'space') renderSpaceDetail();
+}
+
+function rejectExtension(requestId) {
+  const req = db.extensionRequests.find(r => r.id === requestId);
+  if (!req || req.status !== 'PENDING') return;
+  req.status = 'REJECTED';
+  req.resolvedAt = new Date();
+  const space = db.spaces.find(s => s.id === req.spaceId);
+  if (space) {
+    addActivity(space.id, 'EXTENSION_REJECTED', { by: currentUser ? currentUser.name : 'Admin' });
+    pushNotification('EXTENSION_REJECTED', 'Extension rejected', `The extension request for "${space.name}" was declined.`, space.id);
+  }
+  showToast('Extension rejected');
+  renderAdmin();
+}
+
+// ── Navigation ──
+
+function navigateTo(view, opts) {
+  opts = opts || {};
+  // Remember where we came from so the Back control can return there
+  if (!opts.replace && currentView && currentView !== view) {
+    viewHistory.push({ view: currentView, spaceId: currentSpaceId });
+    if (viewHistory.length > 25) viewHistory.shift();
+  }
+
+  // Hide all views
+  document.querySelectorAll('[id^="view-"]').forEach(v => v.classList.add('hidden'));
+
+  const loggedIn = !!currentUser;
+  const authNav = document.getElementById('auth-nav');
+  const sidebar = document.getElementById('sidebar');
+  const topbar = document.getElementById('topbar');
+  const mainWrapper = document.getElementById('main-wrapper');
+
+  if (loggedIn) {
+    authNav.classList.add('hidden');
+    sidebar.classList.remove('hidden');
+    topbar.classList.remove('hidden');
+    topbar.style.left = '240px';
+    mainWrapper.classList.remove('hidden');
+    mainWrapper.querySelector('div').className = 'pl-[240px]';
+  } else {
+    authNav.classList.remove('hidden');
+    sidebar.classList.add('hidden');
+    topbar.classList.add('hidden');
+    mainWrapper.classList.remove('hidden');
+    mainWrapper.querySelector('div').className = '';
+  }
+
+  // Show target view
+  const targetView = document.getElementById('view-' + view);
+  if (targetView) {
+    targetView.classList.remove('hidden');
+    targetView.classList.add('fade-in');
+  }
+
+  currentView = view;
+
+  // Update sidebar active state
+  document.querySelectorAll('.sidebar-link').forEach(l => {
+    const indicator = l.querySelector('.sidebar-indicator');
+    if (l.dataset.view === view) {
+      l.classList.add('bg-brand-50', 'text-brand', 'font-semibold');
+      l.classList.remove('text-muted');
+      if (indicator) indicator.classList.remove('hidden');
+    } else {
+      l.classList.remove('bg-brand-50', 'text-brand', 'font-semibold');
+      l.classList.add('text-muted');
+      if (indicator) indicator.classList.add('hidden');
+    }
+  });
+
+  // Show/hide space nav section
+  const spaceSection = document.getElementById('sidebar-space-section');
+  if (view === 'space' && currentSpaceId) {
+    spaceSection.classList.remove('hidden');
+    const space = db.spaces.find(s => s.id === currentSpaceId);
+    if (space) {
+      document.getElementById('sidebar-space-label').textContent = space.name.substring(0, 15);
+    }
+  } else {
+    spaceSection.classList.add('hidden');
+  }
+
+  // Render view content
+  if (view === 'dashboard') renderDashboard();
+  if (view === 'space') renderSpaceDetail();
+  if (view === 'profile') renderProfile();
+  if (view === 'vault') renderVaultView();
+  if (view === 'my-spaces') renderMySpaces();
+  if (view === 'notifications') renderNotificationsView();
+  if (view === 'admin') renderAdmin();
+  if (view === 'landing') renderLandingTelemetry();
+
+  updateBackButton();
+  updateNotifBadge();
+}
+
+// ── Back / Previous page ──
+
+function goBack() {
+  let entry = viewHistory.pop();
+  while (entry && entry.view === currentView) entry = viewHistory.pop();
+  let target = entry ? entry.view : (currentUser ? 'dashboard' : 'landing');
+  if (entry && entry.spaceId) currentSpaceId = entry.spaceId;
+  if (target === 'space' && !db.spaces.some(s => s.id === currentSpaceId)) target = 'dashboard';
+  navigateTo(target, { replace: true });
+}
+
+function updateBackButton() {
+  const show = viewHistory.length > 0;
+  ['back-btn', 'auth-back-btn'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.classList.toggle('hidden', !show);
+    el.classList.toggle('flex', show);
+  });
+}
+
+// ── Space Creation ──
+
+function setDemoExpiry(minutes) {
+  const now = new Date();
+  const future = new Date(now.getTime() + (minutes + 2) * 60000);
+  const pad = n => String(n).padStart(2, '0');
+  document.getElementById('space-expiry').value = `${future.getFullYear()}-${pad(future.getMonth()+1)}-${pad(future.getDate())}T${pad(future.getHours())}:${pad(future.getMinutes())}`;
+  document.getElementById('space-start').value = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
+}
+
+function addMember() {
+  const email = document.getElementById('invite-email').value;
+  const role = document.getElementById('invite-role').value;
+  if (!email) return;
+  pendingMembers.push({ email, role });
+  document.getElementById('invite-email').value = '';
+  renderMembersList();
+}
+
+function renderMembersList() {
+  document.getElementById('members-list').innerHTML = pendingMembers.map((m, i) =>
+    `<span class="inline-flex items-center gap-1 px-3 py-1 bg-slate-100 rounded-full text-[12px] font-medium">
+      ${m.email} (${m.role})
+      <button onclick="pendingMembers.splice(${i},1);renderMembersList()" class="text-muted hover:text-red-500 ml-1 flex items-center"><span class="material-symbols-outlined text-[14px]">close</span></button>
+    </span>`
+  ).join('');
+}
+
+function createSpace() {
+  const name = document.getElementById('space-name').value;
+  const purpose = document.getElementById('space-purpose').value;
+  const desc = document.getElementById('space-desc').value;
+  const startAt = document.getElementById('space-start').value;
+  const expiryAt = document.getElementById('space-expiry').value;
+
+  if (!name) { showToast('Please enter a space name'); return; }
+  if (!expiryAt) { showToast('Please set an expiry date'); return; }
+  if (new Date(expiryAt) <= new Date(startAt || Date.now())) { showToast('Expiry must be after start date'); return; }
+
+  const spaceId = 'space_' + Date.now();
+  const space = {
+    id: spaceId, name, purpose, description: desc,
+    startAt: startAt ? new Date(startAt) : new Date(),
+    expiryAt: new Date(expiryAt),
+    status: 'ACTIVE', ownerId: currentUser.id, createdAt: new Date(), warningSent: false,
+  };
+  db.spaces.push(space);
+  db.files[spaceId] = [];
+  db.activities[spaceId] = [];
+  db.members[spaceId] = [
+    { userId: currentUser.id, name: currentUser.name, email: currentUser.email, role: 'OWNER', status: 'ACTIVE' },
+    ...pendingMembers.map(m => {
+      const found = Object.values(db.users).find(u => u.email === m.email);
+      return { userId: found ? found.id : 'invited_' + Date.now(), name: found ? found.name : m.email.split('@')[0], email: m.email, role: m.role, status: 'INVITED' };
+    })
+  ];
+  addActivity(spaceId, 'SPACE_CREATED', { by: currentUser.name, name });
+  db.members[spaceId].slice(1).forEach(m => addActivity(spaceId, 'MEMBER_ADDED', { by: currentUser.name, member: m.name }));
+  pushNotification('SPACE_CREATED', 'Space created', `"${name}" is live until ${formatDateTime(space.expiryAt)}.`, spaceId);
+  pendingMembers = [];
+  mySpacesTab = 'active';
+  showToast('Space "' + name + '" created!');
+  currentSpaceId = spaceId;
+  navigateTo('space');
+}
+
+// ── File Upload ──
+
+function handleFileUpload(event) {
+  const files = event.target.files;
+  if (!files.length || !currentSpaceId) return;
+  if (!db.files[currentSpaceId]) db.files[currentSpaceId] = [];
+  const uploaded = [];
+  for (const f of files) {
+    db.files[currentSpaceId].push({
+      name: f.name, size: f.size, type: f.type,
+      uploadedBy: currentUser.name, uploadedAt: new Date()
+    });
+    uploaded.push(f.name);
+    addActivity(currentSpaceId, 'FILE_UPLOADED', { by: currentUser.name, name: f.name });
+  }
+  const space = db.spaces.find(s => s.id === currentSpaceId);
+  pushNotification('FILE_UPLOADED', 'Files uploaded',
+    uploaded.length + ' file(s) added to "' + (space ? space.name : 'Space') + '" — ' + formatBytes(spaceBytes(currentSpaceId)) + ' stored.',
+    currentSpaceId);
+  renderSpaceDetail();
+  showToast(files.length + ' file(s) uploaded!');
+}
+
+// ── Archive / Restore / Delete ──
+
+function openConfirm(config) {
+  document.getElementById('confirm-title').textContent = config.title;
+  document.getElementById('confirm-message').textContent = config.message;
+  const icon = document.querySelector('#confirm-modal .material-symbols-outlined');
+  const wrap = icon.parentElement;
+  const danger = config.danger !== false;
+  icon.textContent = config.icon || 'delete_forever';
+  wrap.className = 'w-10 h-10 rounded-full flex items-center justify-center ' + (danger ? 'bg-red-50' : 'bg-slate-100');
+  icon.className = 'material-symbols-outlined ' + (danger ? 'text-red-600' : 'text-primary');
+  const btn = document.getElementById('confirm-action-btn');
+  btn.textContent = config.confirmLabel;
+  btn.className = 'px-4 py-2 text-[13px] font-medium text-white rounded-lg transition ' + (danger ? 'bg-red-600 hover:bg-red-700' : 'bg-brand hover:bg-brand-700');
+  btn.onclick = config.onConfirm;
+  document.getElementById('confirm-modal').classList.remove('hidden');
+}
+
+function confirmArchiveSpace(spaceId) {
+  const id = spaceId || currentSpaceId;
+  const space = db.spaces.find(s => s.id === id);
+  if (!space) return;
+  openConfirm({
+    title: 'Archive Space?',
+    message: `"${space.name}" will move to your Archived list and disappear from the active workspaces. Its files stay intact and you can restore it any time before ${formatDateTime(space.expiryAt)}.`,
+    icon: 'inventory_2',
+    confirmLabel: 'Archive',
+    danger: false,
+    onConfirm: function() { archiveSpace(id); }
+  });
+}
+
+function archiveSpace(spaceId) {
+  const id = spaceId || currentSpaceId;
+  const space = db.spaces.find(s => s.id === id);
+  if (!space) return;
+  space.status = 'ARCHIVED';
+  space.archivedAt = new Date();
+  addActivity(space.id, 'SPACE_ARCHIVED', { by: currentUser ? currentUser.name : 'System' });
+  pushNotification('SPACE_ARCHIVED', 'Space archived', `"${space.name}" was moved to your Archived list.`, space.id);
+  closeConfirmModal();
+  showToast('Space "' + space.name + '" archived');
+  currentSpaceId = null;
+  navigateTo('my-spaces');
+}
+
+function restoreSpace(spaceId) {
+  const id = spaceId || currentSpaceId;
+  const space = db.spaces.find(s => s.id === id);
+  if (!space) return;
+  if (space.expiryAt <= Date.now()) {
+    showToast('This Space has already reached its end time and cannot be restored');
+    return;
+  }
+  space.status = (space.expiryAt - Date.now()) < 48 * 3600000 ? 'WARNING' : 'ACTIVE';
+  space.archivedAt = null;
+  addActivity(space.id, 'SPACE_RESTORED', { by: currentUser ? currentUser.name : 'System' });
+  pushNotification('SPACE_RESTORED', 'Space restored', `"${space.name}" is active again and ends ${formatDateTime(space.expiryAt)}.`, space.id);
+  showToast('Space "' + space.name + '" restored');
+  if (currentView === 'my-spaces') renderMySpaces();
+  else if (currentView === 'space') renderSpaceDetail();
+  else renderDashboard();
+}
+
+function confirmDeleteSpace(spaceId) {
+  const id = spaceId || currentSpaceId;
+  const space = db.spaces.find(s => s.id === id);
+  if (!space) return;
+  const fileCount = (db.files[space.id] || []).length;
+  openConfirm({
+    title: 'Delete Space?',
+    message: `This action is permanent. "${space.name}" will be deleted and removed from every listing.${fileCount ? ' Its ' + fileCount + ' file(s) will be packaged into a ZIP in the Vault first.' : ''}`,
+    icon: 'delete_forever',
+    confirmLabel: 'Delete Permanently',
+    danger: true,
+    onConfirm: function() { deleteSpace(id); }
+  });
+}
+
+function deleteSpace(spaceId) {
+  const id = spaceId || currentSpaceId;
+  const space = db.spaces.find(s => s.id === id);
+  if (!space) return;
+  const bytes = spaceBytes(space.id);
+  const fileCount = (db.files[space.id] || []).length;
+  if (fileCount > 0) {
+    db.archives.push({
+      id: 'archive_' + Date.now() + '_' + space.id, spaceId: space.id, name: space.name,
+      purpose: space.purpose, files: fileCount, bytes, size: formatBytes(bytes),
+      archivedAt: new Date(), reason: 'MANUAL_DELETE'
+    });
+  }
+  space.status = 'DELETED';
+  space.deletedAt = new Date();
+  addActivity(space.id, 'SPACE_DELETED', { by: currentUser ? currentUser.name : 'System' });
+  pushNotification('SPACE_DELETED', 'Space deleted', `"${space.name}" was permanently deleted${fileCount ? ' and its files were archived to the Vault' : ''}.`, space.id);
+  closeConfirmModal();
+  showToast('Space "' + space.name + '" deleted');
+  currentSpaceId = null;
+  navigateTo('my-spaces');
+}
+
+function closeConfirmModal() {
+  document.getElementById('confirm-modal').classList.add('hidden');
+}
+
+// ── Extension requests ──
+
+function requestExtension() {
+  const space = db.spaces.find(s => s.id === currentSpaceId);
+  if (!space || !currentUser) return;
+  if (db.extensionRequests.some(r => r.spaceId === space.id && r.status === 'PENDING')) {
+    showToast('An extension request for this Space is already pending');
+    return;
+  }
+  db.extensionRequests.push({
+    id: 'req_' + Date.now(), spaceId: space.id, spaceName: space.name,
+    requestedBy: currentUser.name, requestedByEmail: currentUser.email,
+    currentExpiry: space.expiryAt, requestedAt: new Date(), status: 'PENDING'
+  });
+  addActivity(space.id, 'EXTENSION_REQUESTED', { by: currentUser.name });
+  pushNotification('EXTENSION_REQUESTED', 'Extension requested', `An extension for "${space.name}" is awaiting admin review.`, space.id);
+  showToast('Extension request submitted for review');
+  if (currentView === 'admin') renderAdmin();
+}
+
+// ── Downloads ──
+
+function downloadZip(archiveId) {
+  const archive = db.archives.find(a => a.id === archiveId);
+  if (!archive) return;
+  const manifest = { archive: archive.name, files: archive.files, size: archive.size, created: archive.archivedAt };
+  const blob = new Blob([JSON.stringify(manifest, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = archive.name + '.zip';
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('Download started: ' + archive.name + '.zip');
+}
+
+// ── Search ──
+
+function handleSearch(query) {
+  if (!query || !currentUser) return;
+  if (currentView === 'dashboard') renderDashboard();
+}
+
+// ── Toast Notifications ──
+
+function showToast(message) {
+  const container = document.getElementById('toast-container');
+  const toast = document.createElement('div');
+  toast.className = 'px-4 py-3 rounded-lg bg-primary text-white text-[13px] font-medium shadow-lg toast-enter';
+  toast.textContent = message;
+  container.appendChild(toast);
+  setTimeout(() => {
+    toast.classList.remove('toast-enter');
+    toast.classList.add('toast-exit');
+    setTimeout(() => toast.remove(), 300);
+  }, 3000);
+}
+
+// ── Lifecycle Simulation ──
+
+function simulateLifecycle() {
+  const now = Date.now();
+  let changed = false;
+  db.spaces.forEach(s => {
+    if (s.status === 'DELETED' || s.status === 'ARCHIVED') return;
+    const remaining = s.expiryAt - now;
+    if (remaining <= 0) {
+      // Reached its end time: package the files, then release the Space
+      const files = db.files[s.id] || [];
+      const bytes = spaceBytes(s.id);
+      if (files.length > 0) {
+        db.archives.push({
+          id: 'archive_' + Date.now() + '_' + s.id, spaceId: s.id, name: s.name,
+          purpose: s.purpose, files: files.length, bytes, size: formatBytes(bytes),
+          archivedAt: new Date(), reason: 'EXPIRED'
+        });
+        pushNotification('SPACE_ARCHIVED', 'Space archived', `"${s.name}" was packaged into a ZIP in the Vault (${formatBytes(bytes)}).`, s.id);
+      }
+      s.status = 'DELETED';
+      s.deletedAt = new Date();
+      addActivity(s.id, 'SPACE_EXPIRED', { by: 'System' });
+      pushNotification('SPACE_EXPIRED', 'Space expired', `"${s.name}" reached its end time and was removed.`, s.id);
+      changed = true;
+      if (currentSpaceId === s.id && currentView === 'space') { currentSpaceId = null; navigateTo('dashboard'); }
+    } else if (remaining < 48 * 3600000 && s.status === 'ACTIVE') {
+      s.status = 'WARNING';
+      if (!s.warningSent) {
+        s.warningSent = true;
+        addActivity(s.id, 'WARNING_SENT', { by: 'System' });
+        pushNotification('SPACE_WARNING', 'Space expiring soon', `"${s.name}" ends ${formatDateTime(s.expiryAt)}.`, s.id);
+      }
+      changed = true;
+    }
+  });
+  if (changed) {
+    if (currentView === 'dashboard') renderDashboard();
+    if (currentView === 'my-spaces') renderMySpaces();
+    if (currentView === 'notifications') renderNotificationsView();
+    if (currentView === 'admin') renderAdmin();
+    updateNotifBadge();
+  }
+  if (currentView === 'space') renderSpaceDetail();
+}
+
+// ── Initialize App ──
+
+document.addEventListener('DOMContentLoaded', function() {
+  renderLandingTelemetry();
+  updateNotifBadge();
+  navigateTo('landing', { replace: true });
+  setInterval(simulateLifecycle, 5000);
+  // Handle invite links (e.g. #join=TOKEN)
+  handleInviteLink();
+});
+
+// ── Invite Link Handler ──
+
+function handleInviteLink() {
+  const hash = window.location.hash;
+  if (!hash.startsWith('#join=')) return;
+  const token = hash.substring(6);
+  // Find space by token pattern (token contains space ID encoded)
+  const space = db.spaces.find(s => {
+    try {
+      const decoded = atob(s.id + '_');
+      return token.includes(s.id.substring(0, 10));
+    } catch { return false; }
+  });
+  if (!space) {
+    showToast('Invalid or expired invite link');
+    return;
+  }
+  if (!currentUser) {
+    // Store the pending invite and redirect to login
+    window._pendingInviteSpaceId = space.id;
+    navigateTo('login');
+    showToast('Please sign in to accept the invite');
+    return;
+  }
+  requestToJoin(space.id);
+  window.location.hash = '';
+}
+
+function requestToJoin(spaceId) {
+  const space = db.spaces.find(s => s.id === spaceId);
+  if (!space || !currentUser) return;
+
+  // Check if already a member
+  const existing = (db.members[spaceId] || []).find(m => m.userId === currentUser.id);
+  if (existing) { showToast('You are already a member of this Space'); return; }
+
+  // Check for existing pending request
+  const existingRequest = db.inviteRequests.find(r =>
+    r.spaceId === spaceId && r.userId === currentUser.id && r.status === 'PENDING'
+  );
+  if (existingRequest) { showToast('Your join request is already pending'); return; }
+
+  db.inviteRequests.push({
+    id: 'invreq_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+    spaceId: spaceId,
+    spaceName: space.name,
+    type: 'LINK',
+    role: 'EDITOR',
+    userId: currentUser.id,
+    userName: currentUser.name,
+    userEmail: currentUser.email,
+    requestedAt: new Date(),
+    status: 'PENDING'
+  });
+
+  addActivity(spaceId, 'JOIN_REQUESTED', { by: currentUser.name });
+  pushNotification('JOIN_REQUESTED', 'Join request received',
+    `${currentUser.name} requested to join "${space.name}".`, spaceId);
+
+  showToast('Join request sent for "' + space.name + '"!');
+  window._pendingInviteSpaceId = null;
+}
+</script>
+
+</body>
+</html>
